@@ -184,6 +184,7 @@ bin_PROGRAMS = \
 	tri-viewport \
 	tri-z-9 \
 	tri-z \
+	tri-z-clip \
 	tri-z-eq \
 	vbo-drawarrays \
 	vbo-drawarrays-2101010 \
