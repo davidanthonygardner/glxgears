@@ -62,6 +62,8 @@
 #define GLX_COLOR_INDEX_BIT		0x00000002
 #endif
 
+#define ELEMENTS(array) (sizeof(array) / sizeof(array[0]))
+
 typedef enum
 {
    Normal,
@@ -108,6 +110,43 @@ struct visual_attribs
 };
 
    
+/** list of known OpenGL versions */
+static const struct { int major, minor; } gl_versions[] = {
+   {1, 0},
+   {1, 1},
+   {1, 2},
+   {1, 3},
+   {1, 4},
+   {1, 5},
+   {2, 0},
+   {2, 1},
+   {3, 0},
+   {3, 1},
+   {3, 2},
+   {3, 3},
+   {4, 0},
+   {4, 1},
+   {4, 2},
+   {4, 3},
+   {0, 0} /* end of list */
+};
+
+#define NUM_GL_VERSIONS ELEMENTS(gl_versions)
+
+
+/**
+ * GL Error checking/warning.
+ */
+static void
+CheckError(int line)
+{
+   int n;
+   n = glGetError();
+   if (n)
+      printf("Warning: GL error 0x%x at line %d\n", n, line);
+}
+
+
 /*
  * qsort callback for string comparison.
  */
@@ -205,7 +244,7 @@ print_extension_list(const char *ext, Bool singleLine)
          width = indent;
          printf("%s", indentString);
       }
-      else {
+      else if (k < (num_extensions -1)) {
          printf(", ");
          width += 2;
       }
@@ -217,6 +256,46 @@ print_extension_list(const char *ext, Bool singleLine)
    }
    free(extensions);
 }
+
+
+/**
+ * Get list of OpenGL extensions using core profile's glGetStringi().
+ */
+static char *
+build_core_profile_extension_list(void)
+{
+   GLint i, n, totalLen;
+   char *buffer;
+   static PFNGLGETSTRINGIPROC glGetStringi_func = NULL;
+
+   if (!glGetStringi_func) {
+      glGetStringi_func = (PFNGLGETSTRINGIPROC)
+         glXGetProcAddressARB((GLubyte *) "glGetStringi");
+   }
+
+   glGetIntegerv(GL_NUM_EXTENSIONS, &n);
+
+   /* compute totalLen */
+   totalLen = 0;
+   for (i = 0; i < n; i++) {
+      const char *ext = (const char *) glGetStringi_func(GL_EXTENSIONS, i);
+      totalLen += strlen(ext) + 1; /* plus a space */
+   }
+
+   buffer = malloc(totalLen);
+   if (buffer) {
+      int pos = 0;
+      for (i = 0; i < n; i++) {
+         const char *ext = (const char *) glGetStringi_func(GL_EXTENSIONS, i);
+         strcpy(buffer + pos, ext);
+         pos += strlen(ext);
+         buffer[pos++] = ' ';
+      }
+      buffer[pos] = '\0';
+   }
+   return buffer;
+}
+
 
 
 static void
@@ -373,7 +452,7 @@ extension_supported(const char *ext, const char *extensionsList)
  * Print interesting OpenGL implementation limits.
  */
 static void
-print_limits(const char *extensions)
+print_limits(const char *extensions, const char *oglstring)
 {
    struct token_name {
       GLuint count;
@@ -436,7 +515,7 @@ print_limits(const char *extensions)
    };
    GLint i, max[2];
 
-   printf("OpenGL limits:\n");
+   printf("%s limits:\n", oglstring);
    for (i = 0; limits[i].count; i++) {
       if (!limits[i].extension ||
           extension_supported(limits[i].extension, extensions)) {
@@ -480,10 +559,253 @@ print_limits(const char *extensions)
 }
 
 
-static void
-print_screen_info(Display *dpy, int scrnum, Bool allowDirect, Bool limits, Bool singleLine)
+struct bit_info
 {
-   Window win;
+   int bit;
+   const char *name;
+};
+
+
+/**
+ * Return string representation for bits in a bitmask.
+ */
+static const char *
+bitmask_to_string(const struct bit_info bits[], int numBits, int mask)
+{
+   static char buffer[256], *p;
+   int i;
+
+   strcpy(buffer, "(none)");
+   p = buffer;
+   for (i = 0; i < numBits; i++) {
+      if (mask & bits[i].bit) {
+         if (p > buffer)
+            *p++ = ',';
+         strcpy(p, bits[i].name);
+         p += strlen(bits[i].name);
+      }
+   }
+
+   return buffer;
+}
+
+/**
+ * Return string representation for the bitmask returned by
+ * GL_CONTEXT_PROFILE_MASK (OpenGL 3.2 or later).
+ */
+static const char *
+profile_mask_string(int mask)
+{
+   const static struct bit_info bits[] = {
+#ifdef GL_CONTEXT_CORE_PROFILE_BIT
+      { GL_CONTEXT_CORE_PROFILE_BIT, "core profile"},
+#endif
+#ifdef GL_CONTEXT_COMPATIBILITY_PROFILE_BIT
+      { GL_CONTEXT_COMPATIBILITY_PROFILE_BIT, "compatibility profile" }
+#endif
+   };
+
+   return bitmask_to_string(bits, ELEMENTS(bits), mask);
+}
+
+
+/**
+ * Return string representation for the bitmask returned by
+ * GL_CONTEXT_FLAGS (OpenGL 3.0 or later).
+ */
+static const char *
+context_flags_string(int mask)
+{
+   const static struct bit_info bits[] = {
+#ifdef GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT
+      { GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT, "forward-compatible" },
+#endif
+#ifdef GL_CONTEXT_FLAG_ROBUST_ACCESS_BIT_ARB
+      { GL_CONTEXT_FLAG_ROBUST_ACCESS_BIT_ARB, "robust-access" },
+#endif
+   };
+
+   return bitmask_to_string(bits, ELEMENTS(bits), mask);
+}
+
+
+/**
+ * Choose a simple FB Config.
+ */
+static GLXFBConfig *
+choose_fb_config(Display *dpy, int scrnum)
+{
+   int fbAttribSingle[] = {
+      GLX_RENDER_TYPE,   GLX_RGBA_BIT,
+      GLX_RED_SIZE,      1,
+      GLX_GREEN_SIZE,    1,
+      GLX_BLUE_SIZE,     1,
+      GLX_DOUBLEBUFFER,  False,
+      None };
+   int fbAttribDouble[] = {
+      GLX_RENDER_TYPE,   GLX_RGBA_BIT,
+      GLX_RED_SIZE,      1,
+      GLX_GREEN_SIZE,    1,
+      GLX_BLUE_SIZE,     1,
+      GLX_DOUBLEBUFFER,  True,
+      None };
+   GLXFBConfig *configs;
+   int nConfigs;
+
+   configs = glXChooseFBConfig(dpy, scrnum, fbAttribSingle, &nConfigs);
+   if (!configs)
+      configs = glXChooseFBConfig(dpy, scrnum, fbAttribDouble, &nConfigs);
+
+   return configs;
+}
+
+
+static Bool CreateContextErrorFlag;
+
+static int
+create_context_error_handler(Display *dpy, XErrorEvent *error)
+{
+   (void) dpy;
+   (void) error->error_code;
+   CreateContextErrorFlag = True;
+   return 0;
+}
+
+
+/**
+ * Try to create a GLX context of the given version with flags/options.
+ * Note: A version number is required in order to get a core profile
+ * (at least w/ NVIDIA).
+ */
+static GLXContext
+create_context_flags(Display *dpy, GLXFBConfig fbconfig, int major, int minor,
+                     int contextFlags, int profileMask, Bool direct)
+{
+#ifdef GLX_ARB_create_context
+   static PFNGLXCREATECONTEXTATTRIBSARBPROC glXCreateContextAttribsARB_func = 0;
+   static Bool firstCall = True;
+   int (*old_handler)(Display *, XErrorEvent *);
+   GLXContext context;
+   int attribs[20];
+   int n = 0;
+
+   if (firstCall) {
+      /* See if we have GLX_ARB_create_context_profile and get pointer to
+       * glXCreateContextAttribsARB() function.
+       */
+      const char *glxExt = glXQueryExtensionsString(dpy, 0);
+      if (extension_supported("GLX_ARB_create_context_profile", glxExt)) {
+         glXCreateContextAttribsARB_func = (PFNGLXCREATECONTEXTATTRIBSARBPROC)
+            glXGetProcAddress((const GLubyte *) "glXCreateContextAttribsARB");
+      }
+      firstCall = False;
+   }
+
+   if (!glXCreateContextAttribsARB_func)
+      return 0;
+
+   /* setup attribute array */
+   if (major) {
+      attribs[n++] = GLX_CONTEXT_MAJOR_VERSION_ARB;
+      attribs[n++] = major;
+      attribs[n++] = GLX_CONTEXT_MINOR_VERSION_ARB;
+      attribs[n++] = minor;
+   }
+   if (contextFlags) {
+      attribs[n++] = GLX_CONTEXT_FLAGS_ARB;
+      attribs[n++] = contextFlags;
+   }
+#ifdef GLX_ARB_create_context_profile
+   if (profileMask) {
+      attribs[n++] = GLX_CONTEXT_PROFILE_MASK_ARB;
+      attribs[n++] = profileMask;
+   }
+#endif
+   attribs[n++] = 0;
+
+   /* install X error handler */
+   old_handler = XSetErrorHandler(create_context_error_handler);
+   CreateContextErrorFlag = False;
+
+   /* try creating context */
+   context = glXCreateContextAttribsARB_func(dpy,
+                                             fbconfig,
+                                             0, /* share_context */
+                                             direct,
+                                             attribs);
+
+   /* restore error handler */
+   XSetErrorHandler(old_handler);
+
+   if (CreateContextErrorFlag)
+      context = 0;
+
+   if (direct) {
+      if (!glXIsDirect(dpy, context)) {
+         glXDestroyContext(dpy, context);
+         return 0;
+      }
+   }
+
+   return context;
+#else
+   return 0;
+#endif
+}
+
+
+/**
+ * Try to create a GLX context of the newest version.
+ */
+static GLXContext
+create_context_with_config(Display *dpy, GLXFBConfig config,
+                           Bool coreProfile, Bool direct)
+{
+   GLXContext ctx = 0;
+
+   if (coreProfile) {
+      /* Try to create a core profile, starting with the newest version of
+       * GL that we're aware of.  If we don't specify the version
+       */
+      int i;
+      for (i = NUM_GL_VERSIONS - 2; i > 0 ; i--) {
+          /* don't bother below GL 3.0 */
+          if (gl_versions[i].major == 3 &&
+              gl_versions[i].minor == 0)
+             return 0;
+         ctx = create_context_flags(dpy, config,
+                                    gl_versions[i].major,
+                                    gl_versions[i].minor,
+                                    0x0,
+                                    GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
+                                    direct);
+         if (ctx)
+            return ctx;
+      }
+      /* couldn't get core profile context */
+      return 0;
+   }
+
+   /* GLX should return a context of the latest GL version that supports
+    * the full profile.
+    */
+   ctx = glXCreateNewContext(dpy, config, GLX_RGBA_TYPE, NULL, direct);
+
+   /* make sure the context is direct, if direct was requested */
+   if (ctx && direct) {
+      if (!glXIsDirect(dpy, ctx)) {
+         glXDestroyContext(dpy, ctx);
+         return 0;
+      }
+   }
+
+   return ctx;
+}
+
+
+static XVisualInfo *
+choose_xvisinfo(Display *dpy, int scrnum)
+{
    int attribSingle[] = {
       GLX_RGBA,
       GLX_RED_SIZE, 1,
@@ -497,72 +819,70 @@ print_screen_info(Display *dpy, int scrnum, Bool allowDirect, Bool limits, Bool 
       GLX_BLUE_SIZE, 1,
       GLX_DOUBLEBUFFER,
       None };
+   XVisualInfo *visinfo;
 
+   visinfo = glXChooseVisual(dpy, scrnum, attribSingle);
+   if (!visinfo)
+      visinfo = glXChooseVisual(dpy, scrnum, attribDouble);
+
+   return visinfo;
+}
+
+
+static Bool
+print_screen_info(Display *dpy, int scrnum, Bool allowDirect,
+                  Bool coreProfile, Bool limits, Bool singleLine,
+                  Bool coreWorked)
+{
+   Window win;
    XSetWindowAttributes attr;
    unsigned long mask;
    Window root;
    GLXContext ctx = NULL;
    XVisualInfo *visinfo;
    int width = 100, height = 100;
+   GLXFBConfig *fbconfigs;
+   const char *oglstring = coreProfile ? "OpenGL core profile" : "OpenGL";
 
    root = RootWindow(dpy, scrnum);
 
    /*
-    * Find a basic GLX visual.  We'll then create a rendering context and
-    * query various info strings.
+    * Choose FBConfig or XVisualInfo and create a context.
     */
-   visinfo = glXChooseVisual(dpy, scrnum, attribSingle);
-   if (!visinfo)
-      visinfo = glXChooseVisual(dpy, scrnum, attribDouble);
-
-   if (visinfo)
-      ctx = glXCreateContext( dpy, visinfo, NULL, allowDirect );
-
-#ifdef GLX_VERSION_1_3
-   /* Try glXChooseFBConfig() if glXChooseVisual didn't work.
-    * XXX when would that happen?
-    */
-   if (!visinfo) {
-      int fbAttribSingle[] = {
-	 GLX_RENDER_TYPE,   GLX_RGBA_BIT,
-	 GLX_RED_SIZE,      1,
-	 GLX_GREEN_SIZE,    1,
-	 GLX_BLUE_SIZE,     1,
-	 GLX_DOUBLEBUFFER,  False,
-	 None };
-      int fbAttribDouble[] = {
-	 GLX_RENDER_TYPE,   GLX_RGBA_BIT,
-	 GLX_RED_SIZE,      1,
-	 GLX_GREEN_SIZE,    1,
-	 GLX_BLUE_SIZE,     1,
-	 GLX_DOUBLEBUFFER,  True,
-	 None };
-      GLXFBConfig *configs = NULL;
-      int nConfigs;
-
-      configs = glXChooseFBConfig(dpy, scrnum, fbAttribSingle, &nConfigs);
-      if (!configs)
-	 configs = glXChooseFBConfig(dpy, scrnum, fbAttribDouble, &nConfigs);
-
-      if (configs) {
-	 visinfo = glXGetVisualFromFBConfig(dpy, configs[0]);
-	 ctx = glXCreateNewContext(dpy, configs[0], GLX_RGBA_TYPE, NULL, allowDirect);
-	 XFree(configs);
+   fbconfigs = choose_fb_config(dpy, scrnum);
+   if (fbconfigs) {
+      ctx = create_context_with_config(dpy, fbconfigs[0],
+                                       coreProfile, allowDirect);
+      if (!ctx && allowDirect && !coreProfile) {
+         /* try indirect */
+         ctx = create_context_with_config(dpy, fbconfigs[0],
+                                          coreProfile, False);
       }
+
+      visinfo = glXGetVisualFromFBConfig(dpy, fbconfigs[0]);
+      XFree(fbconfigs);
    }
-#endif
+   else {
+      visinfo = choose_xvisinfo(dpy, scrnum);
+      if (visinfo)
+	 ctx = glXCreateContext(dpy, visinfo, NULL, allowDirect);
+   }
 
    if (!visinfo) {
       fprintf(stderr, "Error: couldn't find RGB GLX visual or fbconfig\n");
-      return;
+      return False;
    }
 
    if (!ctx) {
-      fprintf(stderr, "Error: glXCreateContext failed\n");
+      if (!coreProfile)
+	 fprintf(stderr, "Error: glXCreateContext failed\n");
       XFree(visinfo);
-      return;
+      return False;
    }
 
+   /*
+    * Create a window so that we can just bind the context.
+    */
    attr.background_pixel = 0;
    attr.border_pixel = 0;
    attr.colormap = XCreateColormap(dpy, root, visinfo->visual, AllocNone);
@@ -583,72 +903,118 @@ print_screen_info(Display *dpy, int scrnum, Bool allowDirect, Bool limits, Bool 
       const char *glVendor = (const char *) glGetString(GL_VENDOR);
       const char *glRenderer = (const char *) glGetString(GL_RENDERER);
       const char *glVersion = (const char *) glGetString(GL_VERSION);
-      const char *glExtensions = (const char *) glGetString(GL_EXTENSIONS);
+      char *glExtensions;
       int glxVersionMajor;
       int glxVersionMinor;
       char *displayName = NULL;
       char *colon = NULL, *period = NULL;
-      
+      int version; /* 20, 21, 30, 31, 32, etc */
+
+      CheckError(__LINE__);
+      /* Get list of GL extensions */
+      if (coreProfile) {
+         glExtensions = build_core_profile_extension_list();
+      }
+      else {
+         glExtensions = (char *) glGetString(GL_EXTENSIONS);
+      }
+
+      CheckError(__LINE__);
+
       if (! glXQueryVersion( dpy, & glxVersionMajor, & glxVersionMinor )) {
          fprintf(stderr, "Error: glXQueryVersion failed\n");
          exit(1);
       }
 
-      /* Strip the screen number from the display name, if present. */
-      if (!(displayName = (char *) malloc(strlen(DisplayString(dpy)) + 1))) {
-         fprintf(stderr, "Error: malloc() failed\n");
-         exit(1);
-      }
-      strcpy(displayName, DisplayString(dpy));
-      colon = strrchr(displayName, ':');
-      if (colon) {
-         period = strchr(colon, '.');
-         if (period)
-            *period = '\0';
-      }
-      printf("display: %s  screen: %d\n", displayName, scrnum);
-      free(displayName);
-      printf("direct rendering: ");
-      if (glXIsDirect(dpy, ctx)) {
-         printf("Yes\n");
-      }
-      else {
-         if (!allowDirect) {
-            printf("No (-i specified)\n");
+      if (!coreWorked) {
+         /* Strip the screen number from the display name, if present. */
+         if (!(displayName = (char *) malloc(strlen(DisplayString(dpy)) + 1))) {
+            fprintf(stderr, "Error: malloc() failed\n");
+            exit(1);
          }
-         else if (getenv("LIBGL_ALWAYS_INDIRECT")) {
-            printf("No (LIBGL_ALWAYS_INDIRECT set)\n");
+         strcpy(displayName, DisplayString(dpy));
+         colon = strrchr(displayName, ':');
+         if (colon) {
+            period = strchr(colon, '.');
+            if (period)
+               *period = '\0';
+         }
+
+         printf("display: %s  screen: %d\n", displayName, scrnum);
+         free(displayName);
+         printf("direct rendering: ");
+         if (glXIsDirect(dpy, ctx)) {
+            printf("Yes\n");
          }
          else {
-            printf("No (If you want to find out why, try setting "
-                   "LIBGL_DEBUG=verbose)\n");
+            if (!allowDirect) {
+               printf("No (-i specified)\n");
+            }
+            else if (getenv("LIBGL_ALWAYS_INDIRECT")) {
+               printf("No (LIBGL_ALWAYS_INDIRECT set)\n");
+            }
+            else {
+               printf("No (If you want to find out why, try setting "
+                      "LIBGL_DEBUG=verbose)\n");
+            }
          }
-      }
-      printf("server glx vendor string: %s\n", serverVendor);
-      printf("server glx version string: %s\n", serverVersion);
-      printf("server glx extensions:\n");
-      print_extension_list(serverExtensions, singleLine);
-      printf("client glx vendor string: %s\n", clientVendor);
-      printf("client glx version string: %s\n", clientVersion);
-      printf("client glx extensions:\n");
-      print_extension_list(clientExtensions, singleLine);
-      printf("GLX version: %u.%u\n", glxVersionMajor, glxVersionMinor);
-      printf("GLX extensions:\n");
-      print_extension_list(glxExtensions, singleLine);
-      printf("OpenGL vendor string: %s\n", glVendor);
-      printf("OpenGL renderer string: %s\n", glRenderer);
-      printf("OpenGL version string: %s\n", glVersion);
+         printf("server glx vendor string: %s\n", serverVendor);
+         printf("server glx version string: %s\n", serverVersion);
+         printf("server glx extensions:\n");
+         print_extension_list(serverExtensions, singleLine);
+         printf("client glx vendor string: %s\n", clientVendor);
+         printf("client glx version string: %s\n", clientVersion);
+         printf("client glx extensions:\n");
+         print_extension_list(clientExtensions, singleLine);
+         printf("GLX version: %u.%u\n", glxVersionMajor, glxVersionMinor);
+         printf("GLX extensions:\n");
+         print_extension_list(glxExtensions, singleLine);
+         printf("OpenGL vendor string: %s\n", glVendor);
+         printf("OpenGL renderer string: %s\n", glRenderer);
+      } else
+         printf("\n");
+
+      printf("%s version string: %s\n", oglstring, glVersion);
+
+      version = (glVersion[0] - '0') * 10 + (glVersion[2] - '0');
+
+      CheckError(__LINE__);
+
 #ifdef GL_VERSION_2_0
-      if (glVersion[0] >= '2' && glVersion[1] == '.') {
+      if (version >= 20) {
          char *v = (char *) glGetString(GL_SHADING_LANGUAGE_VERSION);
-         printf("OpenGL shading language version string: %s\n", v);
+         printf("%s shading language version string: %s\n", oglstring, v);
+      }
+#endif
+      CheckError(__LINE__);
+#ifdef GL_VERSION_3_0
+      if (version >= 30) {
+         GLint flags;
+         glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+         printf("%s context flags: %s\n", oglstring, context_flags_string(flags));
+      }
+#endif
+      CheckError(__LINE__);
+#ifdef GL_VERSION_3_2
+      if (version >= 32) {
+         GLint mask;
+         glGetIntegerv(GL_CONTEXT_PROFILE_MASK, &mask);
+         printf("%s profile mask: %s\n", oglstring, profile_mask_string(mask));
       }
 #endif
 
-      printf("OpenGL extensions:\n");
+      CheckError(__LINE__);
+
+      printf("%s extensions:\n", oglstring);
       print_extension_list(glExtensions, singleLine);
+
+      CheckError(__LINE__);
+
       if (limits)
-         print_limits(glExtensions);
+         print_limits(glExtensions, oglstring);
+
+      if (coreProfile)
+         free(glExtensions);
    }
    else {
       fprintf(stderr, "Error: glXMakeCurrent failed\n");
@@ -657,6 +1023,8 @@ print_screen_info(Display *dpy, int scrnum, Bool allowDirect, Bool limits, Bool 
    glXDestroyContext(dpy, ctx);
    XFree(visinfo);
    XDestroyWindow(dpy, win);
+   XSync(dpy, 1);
+   return True;
 }
 
 
@@ -684,26 +1052,13 @@ visual_class_name(int cls)
 static const char *
 visual_drawable_type(int type)
 {
-   static char buffer[256], *p;
-   const static struct { int bit; const char *name; } bits[] = {
+   const static struct bit_info bits[] = {
       { GLX_WINDOW_BIT, "window" },
       { GLX_PIXMAP_BIT, "pixmap" },
       { GLX_PBUFFER_BIT, "pbuffer" }
    };
-   int i;
 
-   strcpy(buffer, "(none)");
-   p = buffer;
-   for (i = 0; i < 3; i++) {
-      if (type & bits[i].bit) {
-         if (p > buffer)
-            *p++ = ',';
-         strcpy(p, bits[i].name);
-         p += strlen(bits[i].name);
-      }
-   }
-
-   return buffer;
+   return bitmask_to_string(bits, ELEMENTS(bits), type);
 }
 
 static const char *
@@ -1296,7 +1651,7 @@ find_best_visual(Display *dpy, int scrnum)
 static void
 usage(void)
 {
-   printf("Usage: glxinfo [-v] [-t] [-h] [-i] [-b] [-s] ][-display <dname>]\n");
+   printf("Usage: glxinfo [-v] [-t] [-h] [-i] [-b] [-s] [-display <dname>]\n");
    printf("\t-v: Print visuals info in verbose form.\n");
    printf("\t-t: Print verbose table.\n");
    printf("\t-display <dname>: Print GLX visuals on specified server.\n");
@@ -1319,6 +1674,7 @@ main(int argc, char *argv[])
    Bool limits = False;
    Bool allowDirect = True;
    Bool singleLine = False;
+   Bool coreWorked;
    int i;
 
    for (i = 1; i < argc; i++) {
@@ -1372,7 +1728,9 @@ main(int argc, char *argv[])
       print_display_info(dpy);
       for (scrnum = 0; scrnum < numScreens; scrnum++) {
          mesa_hack(dpy, scrnum);
-         print_screen_info(dpy, scrnum, allowDirect, limits, singleLine);
+         coreWorked = print_screen_info(dpy, scrnum, allowDirect, True, limits, singleLine, False);
+         print_screen_info(dpy, scrnum, allowDirect, False, limits, singleLine, coreWorked);
+
          printf("\n");
          print_visual_info(dpy, scrnum, mode);
 #ifdef GLX_VERSION_1_3
