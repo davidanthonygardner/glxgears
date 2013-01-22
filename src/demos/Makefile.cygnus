@@ -35,7 +35,6 @@ PROGS = bounce \
 	lodbias \
 	morph3d \
 	multiarb \
-	occlude \
 	osdemo \
 	paltex \
 	pixeltex \

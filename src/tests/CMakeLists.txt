@@ -85,7 +85,6 @@ set (targets
 	multitexarray
 	multiwindow
 	no_s3tc
-	occlude
 	packedpixels
 	pbo
 	persp_hint
