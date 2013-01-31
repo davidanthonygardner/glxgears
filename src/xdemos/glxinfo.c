@@ -282,7 +282,7 @@ build_core_profile_extension_list(void)
       totalLen += strlen(ext) + 1; /* plus a space */
    }
 
-   buffer = malloc(totalLen);
+   buffer = malloc(totalLen + 1);
    if (buffer) {
       int pos = 0;
       for (i = 0; i < n; i++) {
