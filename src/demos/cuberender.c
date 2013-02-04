@@ -37,7 +37,7 @@ static GLfloat LightPos[4];
 
 static GLboolean Anim = GL_TRUE;
 
-static GLboolean NeedNewCubeMap = GL_FALSE;
+static GLboolean NeedNewCubeMap = GL_TRUE;
 static GLuint CubeTexture;
 
 
@@ -345,7 +345,6 @@ RenderCubeMap(void)
                                 GL_STENCIL_ATTACHMENT_EXT,
                                 GL_RENDERBUFFER_EXT, depthStencilRb);
 
-   glClearColor(0.25, 0.25, 0.25, 1.0);
    glViewport(0, 0, cubeSize, cubeSize);
 
    /*
@@ -541,6 +540,8 @@ Init(void)
          exit(1);
       }
    }
+
+   glClearColor(0.25, 0.25, 0.25, 1.0);
 
    glEnable(GL_DEPTH_TEST);
    glEnable(GL_LIGHTING);
