@@ -203,7 +203,6 @@ Init(void)
    uv0 = glGetUniformLocation(program, "v0");
    uv1 = glGetUniformLocation(program, "v1");
    uv2 = glGetUniformLocation(program, "v2");
-   printf("Uniforms: %d %d %d\n", uv0, uv1, uv2);
 
    /*assert(glGetError() == 0);*/
 
