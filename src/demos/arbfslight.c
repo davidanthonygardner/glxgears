@@ -188,35 +188,16 @@ Init(void)
       "varying vec3 normal;\n"
       "void main () {\n"
       "   // Compute dot product of light direction and normal vector\n"
-      "   float dotProd = max (dot (lightPos, normalize (normal)), 0.0);\n"
+      "   float dotProd = max(dot(lightPos, normalize(normal)), 0.0);\n"
       "   // Compute diffuse and specular contributions\n"
-#if 1
-      "   gl_FragColor = diffuse * dotProd + specular * pow (dotProd, 20.0);\n"
-#elif 1                         /* test IF/ELSE/ENDIF */
-      "   if (normal.y > 0.0) { \n"
-      "      gl_FragColor = diffuse * dotProd + specular * pow (dotProd, 20.0);\n"
-      "   } \n"
-      "   else { \n"
-      "      if (normal.x < 0.0) { \n"
-      "         gl_FragColor = vec4(1, 0, 0, 0); \n"
-      "      } \n"
-      "      else { \n"
-      "         gl_FragColor = vec4(1, 1, 0, 0); \n" "      } \n" "   } \n"
-#elif 1                         /* test LOOP */
-      "   while (1) { \n"
-      "      if (normal.y >= 0.0) { \n"
-      "         gl_FragColor = vec4(1, 0, 0, 0); \n"
-      "         break; \n"
-      "      } else { \n"
-      "         gl_FragColor = diffuse * dotProd + specular * pow (dotProd, 20.0);\n"
-      "         break; \n" "      } \n" "   } \n"
-#endif
+      "   gl_FragColor = diffuse * dotProd + specular * pow(dotProd, 20.0);\n"
       "}\n";
    static const char *vertShaderText =
       "varying vec3 normal;\n"
       "void main () {\n"
       "   gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;\n"
-      "   normal = gl_NormalMatrix * gl_Normal;\n" "}\n";
+      "   normal = gl_NormalMatrix * gl_Normal;\n"
+      "}\n";
 
    if (!glutExtensionSupported("GL_ARB_fragment_shader")) {
       printf("Sorry, this demo requires GL_ARB_fragment_shader\n");
