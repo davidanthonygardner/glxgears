@@ -14,7 +14,15 @@ set_target_properties (wgl_sharedtex_mt PROPERTIES OUTPUT_NAME sharedtex_mt)
 
 add_executable (wglinfo wglinfo.c)
 add_executable (wglcontext wglcontext.c)
+add_executable (wincopy WIN32 wincopy.c wglutil.c)
 
-install (TARGETS wglthreads wgl_sharedtex_mt wglinfo DESTINATION wgl)
+install (
+	TARGETS
+		wglthreads
+		wgl_sharedtex_mt
+		wglinfo
+		wglcontext
+		wincopy
+	DESTINATION wgl)
 
 add_subdirectory (rtotex)
