@@ -290,6 +290,7 @@ void
 glmDrawVBO(GLMmodel *model)
 {
    GLMgroup* group;
+   uint prevMaterial = ~0;
 
    assert(model->vbo);
 
@@ -320,7 +321,10 @@ glmDrawVBO(GLMmodel *model)
    for (group = model->groups; group; group = group->next) {
       if (group->numtriangles > 0) {
 
-         glmShaderMaterial(&model->materials[group->material]);
+         if (group->material != prevMaterial) {
+            glmShaderMaterial(&model->materials[group->material]);
+            prevMaterial = group->material;
+         }
 
          glDrawRangeElements(GL_TRIANGLES,
                              group->minIndex, group->maxIndex,
