@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <GL/glew.h>
 #include "glm.h"
 #include "readtex.h"
@@ -155,7 +156,13 @@ glmMakeVBOs(GLMmodel *model)
 {
    uint bytes, vertexFloats, i;
    float *buffer;
+   GLMgroup* group;
+   unsigned totalIndexes;
+   GLubyte *ibuffer, *ib;
 
+   /*
+    * Vertex data
+    */
    vertexFloats = 3;
    model->posOffset = 0;
 
@@ -199,6 +206,38 @@ glmMakeVBOs(GLMmodel *model)
    glBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
 
    free(buffer);
+
+   /*
+    * Index data
+    */
+   totalIndexes = 0;
+   for (group = model->groups; group; group = group->next) {
+      if (group->numtriangles > 0) {
+         totalIndexes += 3 * group->numtriangles;
+      }
+   }
+
+   glGenBuffersARB(1, &model->index_vbo);
+   glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, model->index_vbo);
+   glBufferDataARB(GL_ELEMENT_ARRAY_BUFFER_ARB, totalIndexes * sizeof(GLuint),
+                   NULL, GL_STATIC_DRAW_ARB);
+   ibuffer = (GLubyte *) glMapBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB,
+                                        GL_WRITE_ONLY);
+   ib = ibuffer;
+
+   for (group = model->groups; group; group = group->next) {
+      if (group->numtriangles > 0) {
+         int bytes = 3 * group->numtriangles * sizeof(uint);
+         memcpy(ib, group->triIndexes, bytes);
+         totalIndexes += 3 * group->numtriangles;
+         group->indexVboOffset = ib - ibuffer;
+         ib += bytes;
+      }
+   }
+
+   glUnmapBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB);
+
+   glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
 }
 
 
@@ -272,6 +311,8 @@ glmDrawVBO(GLMmodel *model)
       glEnableClientState(GL_TEXTURE_COORD_ARRAY);
    }
 
+   glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, model->index_vbo);
+
    glPushMatrix();
    glTranslatef(model->position[0], model->position[1], model->position[2]);
    glScalef(model->scale, model->scale, model->scale);
@@ -284,13 +325,15 @@ glmDrawVBO(GLMmodel *model)
          glDrawRangeElements(GL_TRIANGLES,
                              group->minIndex, group->maxIndex,
                              3 * group->numtriangles,
-                             GL_UNSIGNED_INT, group->triIndexes);
+                             GL_UNSIGNED_INT,
+                             (void *) (GLintptr) group->indexVboOffset);
       }
    }
 
    glPopMatrix();
 
    glBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
+   glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
    glDisableClientState(GL_VERTEX_ARRAY);
    glDisableClientState(GL_NORMAL_ARRAY);
    glDisableClientState(GL_TEXTURE_COORD_ARRAY);

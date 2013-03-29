@@ -64,6 +64,7 @@ typedef struct _GLMgroup {
   uint            material;           /* index to material for group */
   uint *          triIndexes;
   uint            minIndex, maxIndex;
+  uint            indexVboOffset;       /* offset into index VBO for elements */
   struct _GLMgroup* next;		/* pointer to next group in model */
 } GLMgroup;
 
@@ -98,6 +99,7 @@ typedef struct {
   float scale;
 
   uint vbo;  /* OpenGL VBO for vertex data */
+  uint index_vbo;   /* VBO for index data */
   uint vertexSize;  /* number of floats per vertex */
   uint posOffset;   /* offset of position within vertex, in bytes */
   uint normOffset;   /* offset of normal within vertex, in bytes */
