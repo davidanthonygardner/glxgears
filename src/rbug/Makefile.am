@@ -22,6 +22,7 @@
 # Authors:
 #    Eric Anholt <eric@anholt.net>
 
+if HAVE_RBUG
 if HAVE_MESA_SOURCE
 noinst_PROGRAMS = \
 	bin_to_bmp \
@@ -34,6 +35,7 @@ noinst_PROGRAMS = \
 	ctx_rule \
 	tex_info \
 	tex_dump
+endif
 endif
 
 EXTRA_DIST = \

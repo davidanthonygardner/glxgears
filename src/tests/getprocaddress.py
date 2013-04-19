@@ -3,12 +3,18 @@
 
 # Helper for the getprocaddress.c test.
 
-glapi_xml_path = "../../src/mapi/glapi/gen/"
 
-import sys, getopt, re
+import sys, getopt, re, os
+argc = len(sys.argv)
+if (argc):
+	glapi_xml_path = sys.argv[1]
+else:
+	glapi_xml_path = "../../src/mapi/glapi/gen/"
+
 sys.path.append(glapi_xml_path)
 import gl_XML
 import license
+
 
 
 def FindTestFunctions():
@@ -47,7 +53,7 @@ struct name_test_pair {
    const char *name;
    GLboolean (*test)(generic_func);
 };
-   
+
 static struct name_test_pair functions[] = {"""
 
 	def printBody(self, api):
@@ -76,7 +82,7 @@ static struct name_test_pair functions[] = {"""
 
 
 if __name__ == '__main__':
-	file_name = glapi_xml_path + "gl_API.xml"
+	file_name = os.path.join(glapi_xml_path, "gl_API.xml")
     
 	try:
 		(args, trail) = getopt.getopt(sys.argv[1:], "f:")

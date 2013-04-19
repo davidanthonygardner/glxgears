@@ -42,7 +42,7 @@ nodist_getprocaddress_SOURCES = \
 	getproclist.h
 
 getproclist.h: $(MESA_GLAPI)/gl_API.xml getprocaddress.c getprocaddress.py
-	python getprocaddress.py > getproclist.h
+	python getprocaddress.py $(MESA_GLAPI) > getproclist.h
 
 BUILT_SOURCES = \
 	getproclist.h
