@@ -595,7 +595,7 @@ static void
 print_visual_attribs_short_header(void)
 {
  printf("   visual   x  bf lv rg d st colorbuffer ax dp st accumbuffer  ms  cav\n");
- printf(" id gen nat sp sz l  ci b ro  r  g  b  a bf th cl  r  g  b  a ns b eat\n");
+ printf(" id gen win sp sz l  ci b ro  r  g  b  a bf th cl  r  g  b  a ns b eat\n");
  printf("-----------------------------------------------------------------------\n");
 }
 
@@ -605,7 +605,7 @@ print_visual_attribs_short(int iPixelFormat, LPPIXELFORMATDESCRIPTOR ppfd)
 {
    char *caveat = "None";
 
-   printf("0x%02x %2d %2d %2d %2d %2d %c%c %c  %c %2d %2d %2d %2d %2d %2d %2d",
+   printf("0x%02x %2d  %2d %2d %2d %2d %c%c %c  %c %2d %2d %2d %2d %2d %2d %2d",
           iPixelFormat,
           ppfd->dwFlags & PFD_GENERIC_FORMAT ? 1 : 0,
           ppfd->dwFlags & PFD_DRAW_TO_WINDOW ? 1 : 0,
