@@ -473,13 +473,13 @@ print_screen_info(HDC _hdc, GLboolean limits, GLboolean singleLine)
                         wc.hInstance,
                         NULL);
    if (!win) {
-      fprintf(stderr, "Couldn't create window");
+      fprintf(stderr, "Couldn't create window\n");
       return;
    }
 
    hdc = GetDC(win);
    if (!hdc) {
-      fprintf(stderr, "Couldn't obtain HDC");
+      fprintf(stderr, "Couldn't obtain HDC\n");
       return;
    }
 
