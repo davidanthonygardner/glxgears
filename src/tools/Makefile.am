@@ -22,10 +22,3 @@
 # Authors:
 #    Eric Anholt <eric@anholt.net>
 
-if BUILD_GLTRACE
-GLTRACE = trace
-endif
-
-DIST_SUBDIRS = trace
-
-SUBDIRS = $(GLTRACE)

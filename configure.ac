@@ -304,7 +304,6 @@ AM_CONDITIONAL(HAVE_GBM, test "x$gbm_enabled" = "xyes")
 AM_CONDITIONAL(HAVE_FREETYPE2, test "x$freetype2_enabled" = "xyes")
 AM_CONDITIONAL(HAVE_OSMESA, test "x$osmesa_enabled" = "xyes")
 AM_CONDITIONAL(HAVE_DRM, test "x$drm_enabled" = "xyes")
-AM_CONDITIONAL(BUILD_GLTRACE, false)
 AM_CONDITIONAL(HAVE_MESA_SOURCE, test "x$mesa_source_enabled" = "xyes")
 AM_CONDITIONAL(HAVE_WAYLAND, test "x$wayland_enabled" = "xyes")
 AM_CONDITIONAL(HAVE_RBUG, test "x$rbug_enabled" = "xyes")
@@ -335,7 +334,6 @@ AC_OUTPUT([
 	src/slang/Makefile
 	src/tests/Makefile
 	src/tools/Makefile
-	src/tools/trace/Makefile
 	src/trivial/Makefile
 	src/util/Makefile
 	src/vp/Makefile
