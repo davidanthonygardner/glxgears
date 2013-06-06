@@ -27,21 +27,12 @@
  * gcc -Wall -ansi -lGL -lGLU -lglut dds.c -o dds
  */
 
-#ifndef _WIN32
-#ifndef GL_GLEXT_PROTOTYPES
-#define GL_GLEXT_PROTOTYPES 1
-#endif /* GL_GLEXT_PROTOTYPES */
-#endif /* _WIN32 */
-
-#include <GL/glut.h>
-#include <GL/glext.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef _WIN32
-PFNGLCOMPRESSEDTEXIMAGE2DARBPROC glCompressedTexImage2D = NULL;
-#endif /* _WIN32 */
+#include <GL/glew.h>
+#include "glut_wrap.h"
 
 
 /* OpenGL texture info */
@@ -110,12 +101,14 @@ struct DDSurfaceDesc
   GLuint textureStage;
 };
 
+#ifndef MAKEFOURCC
 #define MAKEFOURCC(ch0, ch1, ch2, ch3) \
   (GLuint)( \
     (((GLuint)(GLubyte)(ch3) << 24) & 0xFF000000) | \
     (((GLuint)(GLubyte)(ch2) << 16) & 0x00FF0000) | \
     (((GLuint)(GLubyte)(ch1) <<  8) & 0x0000FF00) | \
      ((GLuint)(GLubyte)(ch0)        & 0x000000FF) )
+#endif
 
 #define FOURCC_DXT1 MAKEFOURCC('D', 'X', 'T', '1')
 #define FOURCC_DXT3 MAKEFOURCC('D', 'X', 'T', '3')
@@ -140,7 +133,6 @@ ReadDDSFile (const char *filename)
   struct gl_texture_t *texinfo;
   FILE *fp;
   char magic[4];
-  int mipmapFactor;
   long bufferSize, curr, end;
 
   /* Open the file */
@@ -177,21 +169,18 @@ ReadDDSFile (const char *filename)
       /* DXT1's compression ratio is 8:1 */
       texinfo->format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
       texinfo->internalFormat = 3;
-      mipmapFactor = 2;
       break;
 
     case FOURCC_DXT3:
       /* DXT3's compression ratio is 4:1 */
       texinfo->format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
       texinfo->internalFormat = 4;
-      mipmapFactor = 4;
       break;
 
     case FOURCC_DXT5:
       /* DXT5's compression ratio is 4:1 */
       texinfo->format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
       texinfo->internalFormat = 4;
-      mipmapFactor = 4;
       break;
 
     default:
@@ -220,7 +209,7 @@ ReadDDSFile (const char *filename)
   return texinfo;
 }
 
-GLuint
+static GLuint
 loadDDSTexture (const char *filename)
 {
   struct gl_texture_t *compressed_texture = NULL;
@@ -273,7 +262,7 @@ loadDDSTexture (const char *filename)
 }
 
 static void
-cleanup ()
+cleanup (void)
 {
   glDeleteTextures (1, &texId);
 }
@@ -300,11 +289,6 @@ init (const char *filename)
       exit(-1);
     }
 
-  /* Initialize OpenGL extensions */
-#ifdef _WIN32
-  glCompressedTexImage2D = (PFNGLCOMPRESSEDTEXIMAGE2DARBPROC)
-    wglGetProcAddress ("glCompressedTexImage2DARB");
-#endif
 
   /* Load DDS texture from file */
   texId = loadDDSTexture (filename);
@@ -331,7 +315,7 @@ reshape (int w, int h)
 }
 
 static void
-display ()
+display (void)
 {
   glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glLoadIdentity ();
@@ -381,6 +365,9 @@ main (int argc, char *argv[])
   glutInitDisplayMode (GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
   glutInitWindowSize (640, 480);
   glutCreateWindow ("DDS Texture Demo");
+
+  /* Initialize OpenGL extensions */
+  glewInit();
 
   atexit (cleanup);
   init (argv[1]);
