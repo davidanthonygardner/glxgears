@@ -306,7 +306,10 @@ reshape (int w, int h)
 
   glMatrixMode (GL_PROJECTION);
   glLoadIdentity ();
-  gluPerspective (45.0, w/(GLdouble)h, 0.1, 1000.0);
+  if (w <= h)
+    gluOrtho2D (-1.0, 1.0, -1.0*(GLfloat)h/(GLfloat)w, 1.0*(GLfloat)h/(GLfloat)w);
+  else
+    gluOrtho2D (-1.0*(GLfloat)w/(GLfloat)h, 1.0*(GLfloat)w/(GLfloat)h, -1.0, 1.0);
 
   glMatrixMode (GL_MODELVIEW);
   glLoadIdentity ();
@@ -324,7 +327,7 @@ display (void)
   glBindTexture (GL_TEXTURE_2D, texId);
 
   /* Draw textured quad */
-  glTranslatef (0.0, 0.0, -5.0);
+  glTranslatef (0.0, 0.0, 0.5);
   glBegin (GL_QUADS);
     glTexCoord2f (0.0f, 0.0f);
     glVertex3f (-1.0f, -1.0f, 0.0f);
@@ -362,8 +365,8 @@ main (int argc, char *argv[])
     }
 
   glutInit (&argc, argv);
-  glutInitDisplayMode (GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
-  glutInitWindowSize (640, 480);
+  glutInitDisplayMode (GLUT_RGBA | GLUT_DOUBLE);
+  glutInitWindowSize (512, 512);
   glutCreateWindow ("DDS Texture Demo");
 
   /* Initialize OpenGL extensions */
