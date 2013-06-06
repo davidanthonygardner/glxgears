@@ -15,6 +15,7 @@ add_subdirectory (vp)
 add_subdirectory (vpglsl)
 add_subdirectory (gs)
 add_subdirectory (slang)
+add_subdirectory (tools)
 
 if (EGL_FOUND)
 	add_subdirectory(egl)
