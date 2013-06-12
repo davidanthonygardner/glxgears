@@ -2,6 +2,10 @@
 #define SHADER_UTIL_H
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 struct uniform_info
 {
@@ -38,6 +42,10 @@ LinkShaders(GLuint vertShader, GLuint fragShader);
 
 extern GLuint
 LinkShaders3(GLuint vertShader, GLuint geomShader, GLuint fragShader);
+
+extern GLuint
+LinkShaders3WithGeometryInfo(GLuint vertShader, GLuint geomShader, GLuint fragShader,
+                             GLint verticesOut, GLenum inputType, GLenum outputType);
 
 extern GLboolean
 ValidateShaderProgram(GLuint program);
@@ -85,5 +93,9 @@ extern PFNGLUNIFORM3FVPROC Uniform3fv;
 extern PFNGLUNIFORM4FVPROC Uniform4fv;
 extern PFNGLGETACTIVEATTRIBPROC GetActiveAttrib;
 extern PFNGLGETATTRIBLOCATIONPROC GetAttribLocation;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SHADER_UTIL_H */

@@ -221,6 +221,49 @@ LinkShaders3(GLuint vertShader, GLuint geomShader, GLuint fragShader)
 }
 
 
+GLuint
+LinkShaders3WithGeometryInfo(GLuint vertShader, GLuint geomShader, GLuint fragShader,
+                             GLint verticesOut, GLenum inputType, GLenum outputType)
+{
+  GLuint program = CreateProgram();
+  GLdouble t0, t1;
+
+  assert(vertShader || fragShader);
+
+  if (vertShader)
+    AttachShader(program, vertShader);
+  if (geomShader) {
+    AttachShader(program, geomShader);
+    glProgramParameteriARB(program, GL_GEOMETRY_VERTICES_OUT_ARB, verticesOut);
+    glProgramParameteriARB(program, GL_GEOMETRY_INPUT_TYPE_ARB, inputType);
+    glProgramParameteriARB(program, GL_GEOMETRY_OUTPUT_TYPE_ARB, outputType);
+  }
+  if (fragShader)
+    AttachShader(program, fragShader);
+
+  t0 = glutGet(GLUT_ELAPSED_TIME) * 0.001;
+  LinkProgram(program);
+  t1 = glutGet(GLUT_ELAPSED_TIME) * 0.001;
+
+  LinkTime = t1 - t0;
+
+  /* check link */
+  {
+    GLint stat;
+    GetProgramiv(program, GL_LINK_STATUS, &stat);
+    if (!stat) {
+      GLchar log[1000];
+      GLsizei len;
+      GetProgramInfoLog(program, 1000, &len, log);
+      fprintf(stderr, "Shader link error:\n%s\n", log);
+      return 0;
+    }
+  }
+
+  return program;
+}
+
+
 GLboolean
 ValidateShaderProgram(GLuint program)
 {
