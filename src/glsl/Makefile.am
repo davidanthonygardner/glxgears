@@ -26,6 +26,10 @@ AM_CFLAGS = \
 	$(DEMO_CFLAGS) \
 	$(GLUT_CFLAGS) \
 	-I$(top_srcdir)/src/util
+AM_CXXFLAGS = \
+	$(DEMO_CXXFLAGS) \
+	$(GLUT_CXXFLAGS) \
+	-I$(top_srcdir)/src/util
 AM_LDFLAGS = \
 	$(DEMO_LIBS) \
 	$(GLUT_LIBS)
@@ -47,6 +51,7 @@ bin_PROGRAMS = \
 	geom-sprites \
 	geom-stipple-lines \
 	geom-wide-lines \
+	gsraytrace \
 	identity \
 	linktest \
 	mandelbrot \
@@ -72,6 +77,8 @@ bin_PROGRAMS = \
 	vsraytrace
 endif
 
+gsraytrace_SOURCES = gsraytrace.cpp
+
 samplers_array_SOURCES = samplers.c
 samplers_array_CFLAGS = $(AM_CFLAGS) -DSAMPLERS_ARRAY
 
@@ -88,6 +95,7 @@ geom_outlining_150_LDADD = ../util/libutil.la
 geom_sprites_LDADD = ../util/libutil.la
 geom_stipple_lines_LDADD = ../util/libutil.la
 geom_wide_lines_LDADD = ../util/libutil.la
+gsraytrace_LDADD = ../util/libutil.la
 fsraytrace_LDADD = ../util/libutil.la
 fragcoord_LDADD = ../util/libutil.la
 identity_LDADD = ../util/libutil.la

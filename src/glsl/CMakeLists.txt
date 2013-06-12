@@ -34,6 +34,7 @@ set (targets
 	geom-sprites
 	geom-stipple-lines
 	geom-wide-lines
+	gsraytrace
 	identity
 	linktest
 	mandelbrot
@@ -59,7 +60,11 @@ set (targets
 )
 
 foreach (target ${targets})
-	add_executable (${subdir}_${target} ${target}.c)
+	if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${target}.cpp")
+		add_executable (${subdir}_${target} ${target}.cpp)
+	else()
+		add_executable (${subdir}_${target} ${target}.c)
+	endif()
 	set_target_properties (${subdir}_${target} PROPERTIES OUTPUT_NAME ${target})
 	install (TARGETS ${subdir}_${target} DESTINATION ${subdir})
 endforeach (target)
