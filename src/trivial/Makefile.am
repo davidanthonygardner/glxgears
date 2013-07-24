@@ -159,6 +159,7 @@ bin_PROGRAMS = \
 	tri-point-line-clipped \
 	tri-query \
 	tri-repeat \
+	tri-rotate \
 	tri-scissor-tri \
 	tri-square \
 	tri-stencil \
