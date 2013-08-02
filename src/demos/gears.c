@@ -4,6 +4,7 @@
  * Command line options:
  *    -info      print GL implementation information
  *    -exit      automatically exit after 30 seconds
+ *    -noanim    turn off animation
  *
  *
  * Brian Paul
@@ -371,6 +372,9 @@ init(int argc, char *argv[])
     else if ( strcmp(argv[i], "-exit")==0) {
       autoexit = 30;
       printf("Auto Exit after %i seconds.\n", autoexit );
+    }
+    else if (strcmp(argv[i], "-noanim") == 0) {
+      Animate = GL_FALSE;
     }
   }
 }
