@@ -61,9 +61,9 @@
 static GLint BaseLevel = 0, MaxLevel = 9;
 static GLfloat MinLod = -1, MaxLod = 9;
 static GLfloat LodBias = 0.0;
-static GLboolean NearestFilter = GL_TRUE;
 static GLuint texImage, texColor, texCurrent;
-static unsigned int min_filter;
+static GLboolean MagNearestFilter = GL_TRUE;
+static unsigned int MinFilterIndex = 0;
 static int Width = 600, Height = 600;
 
 static const struct
@@ -90,7 +90,8 @@ InitValues(void)
    MinLod = -1;
    MaxLod = 9;
    LodBias = 0.0;
-   NearestFilter = GL_TRUE;
+   MagNearestFilter = GL_TRUE;
+   MinFilterIndex = 0;
 }
 
 
@@ -233,7 +234,12 @@ print_info(void)
    glColor3f(1, 1, 1);
 
    glWindowPos2i(x, y);
-   sprintf(s, "MIN FILTER (f/F): %s", min_filters[min_filter].name);
+   sprintf(s, "MIN_FILTER (f/F): %s", min_filters[MinFilterIndex].name);
+   print_string(s);
+   y -= dy;
+
+   glWindowPos2i(x, y);
+   sprintf(s, "  MAG_FILTER (g): %s", MagNearestFilter ? "NEAREST" : "LINEAR");
    print_string(s);
    y -= dy;
 
@@ -285,8 +291,8 @@ display(void)
 
    printf
       ("BASE_LEVEL=%d  MAX_LEVEL=%d  MIN_LOD=%.2g  MAX_LOD=%.2g  Bias=%.2g  Filter=%s/%s\n",
-       BaseLevel, MaxLevel, MinLod, MaxLod, LodBias, min_filters[min_filter].name,
-       NearestFilter ? "NEAREST" : "LINEAR");
+       BaseLevel, MaxLevel, MinLod, MaxLod, LodBias, min_filters[MinFilterIndex].name,
+       MagNearestFilter ? "NEAREST" : "LINEAR");
    fflush(stdout);
 
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, BaseLevel);
@@ -295,8 +301,8 @@ display(void)
    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, MinLod);
    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, MaxLod);
 
-   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filters[min_filter].value);
-   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, NearestFilter ? GL_NEAREST : GL_LINEAR);
+   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filters[MinFilterIndex].value);
+   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, MagNearestFilter ? GL_NEAREST : GL_LINEAR);
 
    glTexEnvf(GL_TEXTURE_FILTER_CONTROL_EXT, GL_TEXTURE_LOD_BIAS_EXT, LodBias);
 
@@ -392,17 +398,17 @@ key(unsigned char k, int x, int y)
       MaxLod += 0.25;
       break;
    case 'f':
-      if (!min_filter)
-         min_filter = sizeof(min_filters) / sizeof(*min_filters);
-      min_filter--;
+      if (MinFilterIndex == 0)
+         MinFilterIndex = sizeof(min_filters) / sizeof(*min_filters);
+      MinFilterIndex--;
       break;
    case 'F':
-      min_filter++;
-      if (min_filter == sizeof(min_filters) / sizeof(*min_filters))
-         min_filter = 0;
+      MinFilterIndex++;
+      if (MinFilterIndex == sizeof(min_filters) / sizeof(*min_filters))
+         MinFilterIndex = 0;
       break;
    case 'g':
-      NearestFilter = !NearestFilter;
+      MagNearestFilter = !MagNearestFilter;
       break;
    case 't':
       if (texCurrent == texColor)
