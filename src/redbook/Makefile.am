@@ -101,6 +101,7 @@ noinst_PROGRAMS = \
 	texgen \
 	texprox \
 	texsub \
+	texture3d \
 	texturesurf \
 	torus \
 	trim \
