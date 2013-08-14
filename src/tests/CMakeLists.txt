@@ -33,6 +33,7 @@ set (targets
 	arbvptorus
 	arbvpwarpmesh
 	arraytexture
+	backspecular
 	blendxor
 	blitfb
 	bufferobj

@@ -66,6 +66,7 @@ noinst_PROGRAMS = \
 	arbvpwarpmesh \
 	arraytexture \
 	auxbuffer \
+	backspecular \
 	blendxor \
 	blitfb \
 	bufferobj \
