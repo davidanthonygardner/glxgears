@@ -1,6 +1,10 @@
 #include <wayland-client.h>
 #include <wayland-egl.h>
 
+#include <poll.h>
+#include <errno.h>
+#include <string.h>
+
 #include "eglutint.h"
 
 struct display {
@@ -20,42 +24,74 @@ static struct display display = {0, };
 static struct window window = {0, };
 
 static void
-display_handle_global(struct wl_display *display, uint32_t id,
-		      const char *interface, uint32_t version, void *data)
+registry_handle_global(void *data, struct wl_registry *registry, uint32_t id,
+                       const char *interface, uint32_t version)
 {
    struct display *d = data;
 
    if (strcmp(interface, "wl_compositor") == 0) {
       d->compositor =
-         wl_display_bind(display, id, &wl_compositor_interface);
+         wl_registry_bind(registry, id, &wl_compositor_interface, 1);
    } else if (strcmp(interface, "wl_shell") == 0) {
-      d->shell = wl_display_bind(display, id, &wl_shell_interface);
+      d->shell = wl_registry_bind(registry, id, &wl_shell_interface, 1);
    }
 }
 
-static int
-event_mask_update(uint32_t mask, void *data)
+static void
+registry_handle_global_remove(void *data, struct wl_registry *registry,
+                              uint32_t name)
 {
-   struct display *d = data;
+}
 
-   d->mask = mask;
+static const struct wl_registry_listener registry_listener = {
+   registry_handle_global,
+   registry_handle_global_remove
+};
 
-   return 0;
+static void
+sync_callback(void *data, struct wl_callback *callback, uint32_t serial)
+{
+   int *done = data;
+
+   *done = 1;
+   wl_callback_destroy(callback);
+}
+
+static const struct wl_callback_listener sync_listener = {
+   sync_callback
+};
+
+static int
+wayland_roundtrip(struct wl_display *display)
+{
+   struct wl_callback *callback;
+   int done = 0, ret = 0;
+
+   callback = wl_display_sync(display);
+   wl_callback_add_listener(callback, &sync_listener, &done);
+   while (ret != -1 && !done)
+      ret = wl_display_dispatch(display);
+
+   if (!done)
+      wl_callback_destroy(callback);
+
+   return ret;
 }
 
 void
 _eglutNativeInitDisplay(void)
 {
+   struct wl_registry *registry;
+
    _eglut->native_dpy =  display.display = wl_display_connect(NULL);
 
    if (!_eglut->native_dpy)
       _eglutFatal("failed to initialize native display");
 
-   wl_display_add_global_listener(_eglut->native_dpy,
-         display_handle_global, &display);
-
-   wl_display_get_fd(_eglut->native_dpy, event_mask_update, &display);
-   wl_display_iterate(_eglut->native_dpy, WL_DISPLAY_READABLE);
+   registry = wl_display_get_registry(_eglut->native_dpy);
+   wl_registry_add_listener(registry, &registry_listener, &display);
+   wayland_roundtrip(_eglut->native_dpy);
+   wl_registry_destroy(registry);
 
    _eglut->surface_type = EGL_WINDOW_BIT;
 }
@@ -124,12 +160,56 @@ draw(void *data, struct wl_callback *callback, uint32_t time)
 void
 _eglutNativeEventLoop(void)
 {
+   struct pollfd pollfd;
+   int ret;
+
    draw(&window, NULL, 0);
 
+   pollfd.fd = wl_display_get_fd(display.display);
+   pollfd.events = POLLIN;
+   pollfd.revents = 0;
+
    while (1) {
-      wl_display_iterate(display.display, display.mask);
+      wl_display_dispatch_pending(display.display);
 
       if (_eglut->idle_cb)
          _eglut->idle_cb();
+
+      ret = wl_display_flush(display.display);
+      if (ret < 0 && errno == EAGAIN)
+         pollfd.events |= POLLOUT;
+      else if (ret < 0)
+         break;
+
+      if (poll(&pollfd, 1, _eglut->redisplay ? 0 : -1) == -1)
+         break;
+
+      if (pollfd.revents & (POLLERR | POLLHUP))
+         break;
+
+      if (pollfd.revents & POLLIN) {
+         ret = wl_display_dispatch(display.display);
+         if (ret == -1)
+            break;
+      }
+
+      if (pollfd.revents & POLLOUT) {
+         ret = wl_display_flush(display.display);
+         if (ret == 0)
+            pollfd.events &= ~POLLOUT;
+         else if (ret == -1 && errno != EAGAIN)
+            break;
+      }
+
+      if (_eglut->redisplay) {
+         struct eglut_window *win = _eglut->current;
+
+         _eglut->redisplay = 0;
+
+         if (win->display_cb)
+            win->display_cb();
+
+         eglSwapBuffers(_eglut->dpy, win->surface);
+      }
    }
 }
