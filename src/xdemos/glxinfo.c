@@ -148,6 +148,137 @@ CheckError(int line)
 }
 
 
+/**
+ * Return the GL enum name for a numeric value.
+ * We really only care about the compressed texture formats for now.
+ */
+static const char *
+enum_name(GLenum val)
+{
+   static const struct {
+      const char *name;
+      GLenum val;
+   } enums [] = {
+      { "GL_COMPRESSED_ALPHA", 0x84E9 },
+      { "GL_COMPRESSED_LUMINANCE", 0x84EA },
+      { "GL_COMPRESSED_LUMINANCE_ALPHA", 0x84EB },
+      { "GL_COMPRESSED_INTENSITY", 0x84EC },
+      { "GL_COMPRESSED_RGB", 0x84ED },
+      { "GL_COMPRESSED_RGBA", 0x84EE },
+      { "GL_COMPRESSED_TEXTURE_FORMATS", 0x86A3 },
+      { "GL_COMPRESSED_RGB", 0x84ED },
+      { "GL_COMPRESSED_RGBA", 0x84EE },
+      { "GL_COMPRESSED_TEXTURE_FORMATS", 0x86A3 },
+      { "GL_COMPRESSED_ALPHA", 0x84E9 },
+      { "GL_COMPRESSED_LUMINANCE", 0x84EA },
+      { "GL_COMPRESSED_LUMINANCE_ALPHA", 0x84EB },
+      { "GL_COMPRESSED_INTENSITY", 0x84EC },
+      { "GL_COMPRESSED_SRGB", 0x8C48 },
+      { "GL_COMPRESSED_SRGB_ALPHA", 0x8C49 },
+      { "GL_COMPRESSED_SLUMINANCE", 0x8C4A },
+      { "GL_COMPRESSED_SLUMINANCE_ALPHA", 0x8C4B },
+      { "GL_COMPRESSED_RED", 0x8225 },
+      { "GL_COMPRESSED_RG", 0x8226 },
+      { "GL_COMPRESSED_RED_RGTC1", 0x8DBB },
+      { "GL_COMPRESSED_SIGNED_RED_RGTC1", 0x8DBC },
+      { "GL_COMPRESSED_RG_RGTC2", 0x8DBD },
+      { "GL_COMPRESSED_SIGNED_RG_RGTC2", 0x8DBE },
+      { "GL_COMPRESSED_RGB8_ETC2", 0x9274 },
+      { "GL_COMPRESSED_SRGB8_ETC2", 0x9275 },
+      { "GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2", 0x9276 },
+      { "GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2", 0x9277 },
+      { "GL_COMPRESSED_RGBA8_ETC2_EAC", 0x9278 },
+      { "GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC", 0x9279 },
+      { "GL_COMPRESSED_R11_EAC", 0x9270 },
+      { "GL_COMPRESSED_SIGNED_R11_EAC", 0x9271 },
+      { "GL_COMPRESSED_RG11_EAC", 0x9272 },
+      { "GL_COMPRESSED_SIGNED_RG11_EAC", 0x9273 },
+      { "GL_COMPRESSED_ALPHA_ARB", 0x84E9 },
+      { "GL_COMPRESSED_LUMINANCE_ARB", 0x84EA },
+      { "GL_COMPRESSED_LUMINANCE_ALPHA_ARB", 0x84EB },
+      { "GL_COMPRESSED_INTENSITY_ARB", 0x84EC },
+      { "GL_COMPRESSED_RGB_ARB", 0x84ED },
+      { "GL_COMPRESSED_RGBA_ARB", 0x84EE },
+      { "GL_COMPRESSED_TEXTURE_FORMATS_ARB", 0x86A3 },
+      { "GL_COMPRESSED_RGBA_BPTC_UNORM_ARB", 0x8E8C },
+      { "GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB", 0x8E8D },
+      { "GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB", 0x8E8E },
+      { "GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB", 0x8E8F },
+      { "GL_COMPRESSED_RGBA_ASTC_4x4_KHR", 0x93B0 },
+      { "GL_COMPRESSED_RGBA_ASTC_5x4_KHR", 0x93B1 },
+      { "GL_COMPRESSED_RGBA_ASTC_5x5_KHR", 0x93B2 },
+      { "GL_COMPRESSED_RGBA_ASTC_6x5_KHR", 0x93B3 },
+      { "GL_COMPRESSED_RGBA_ASTC_6x6_KHR", 0x93B4 },
+      { "GL_COMPRESSED_RGBA_ASTC_8x5_KHR", 0x93B5 },
+      { "GL_COMPRESSED_RGBA_ASTC_8x6_KHR", 0x93B6 },
+      { "GL_COMPRESSED_RGBA_ASTC_8x8_KHR", 0x93B7 },
+      { "GL_COMPRESSED_RGBA_ASTC_10x5_KHR", 0x93B8 },
+      { "GL_COMPRESSED_RGBA_ASTC_10x6_KHR", 0x93B9 },
+      { "GL_COMPRESSED_RGBA_ASTC_10x8_KHR", 0x93BA },
+      { "GL_COMPRESSED_RGBA_ASTC_10x10_KHR", 0x93BB },
+      { "GL_COMPRESSED_RGBA_ASTC_12x10_KHR", 0x93BC },
+      { "GL_COMPRESSED_RGBA_ASTC_12x12_KHR", 0x93BD },
+      { "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR", 0x93D0 },
+      { "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR", 0x93D1 },
+      { "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR", 0x93D2 },
+      { "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR", 0x93D3 },
+      { "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR", 0x93D4 },
+      { "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR", 0x93D5 },
+      { "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR", 0x93D6 },
+      { "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR", 0x93D7 },
+      { "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR", 0x93D8 },
+      { "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR", 0x93D9 },
+      { "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR", 0x93DA },
+      { "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR", 0x93DB },
+      { "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR", 0x93DC },
+      { "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR", 0x93DD },
+      { "GL_COMPRESSED_RGB_FXT1_3DFX", 0x86B0 },
+      { "GL_COMPRESSED_RGBA_FXT1_3DFX", 0x86B1 },
+      { "GL_COMPRESSED_LUMINANCE_LATC1_EXT", 0x8C70 },
+      { "GL_COMPRESSED_SIGNED_LUMINANCE_LATC1_EXT", 0x8C71 },
+      { "GL_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT", 0x8C72 },
+      { "GL_COMPRESSED_SIGNED_LUMINANCE_ALPHA_LATC2_EXT", 0x8C73 },
+      { "GL_COMPRESSED_RED_RGTC1_EXT", 0x8DBB },
+      { "GL_COMPRESSED_SIGNED_RED_RGTC1_EXT", 0x8DBC },
+      { "GL_COMPRESSED_RED_GREEN_RGTC2_EXT", 0x8DBD },
+      { "GL_COMPRESSED_SIGNED_RED_GREEN_RGTC2_EXT", 0x8DBE },
+      { "GL_COMPRESSED_RGB_S3TC_DXT1_EXT", 0x83F0 },
+      { "GL_COMPRESSED_RGBA_S3TC_DXT1_EXT", 0x83F1 },
+      { "GL_COMPRESSED_RGBA_S3TC_DXT3_EXT", 0x83F2 },
+      { "GL_COMPRESSED_RGBA_S3TC_DXT5_EXT", 0x83F3 },
+      { "GL_COMPRESSED_SRGB_EXT", 0x8C48 },
+      { "GL_COMPRESSED_SRGB_ALPHA_EXT", 0x8C49 },
+      { "GL_COMPRESSED_SLUMINANCE_EXT", 0x8C4A },
+      { "GL_COMPRESSED_SLUMINANCE_ALPHA_EXT", 0x8C4B },
+      { "GL_COMPRESSED_SRGB_S3TC_DXT1_EXT", 0x8C4C },
+      { "GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT", 0x8C4D },
+      { "GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT", 0x8C4E },
+      { "GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT", 0x8C4F },
+      { "GL_PALETTE4_RGB8_OES", 0x8B90 },
+      { "GL_PALETTE4_RGBA8_OES", 0x8B91 },
+      { "GL_PALETTE4_R5_G6_B5_OES", 0x8B92 },
+      { "GL_PALETTE4_RGBA4_OES", 0x8B93 },
+      { "GL_PALETTE4_RGB5_A1_OES", 0x8B94 },
+      { "GL_PALETTE8_RGB8_OES", 0x8B95 },
+      { "GL_PALETTE8_RGBA8_OES", 0x8B96 },
+      { "GL_PALETTE8_R5_G6_B5_OES", 0x8B97 },
+      { "GL_PALETTE8_RGBA4_OES", 0x8B98 },
+      { "GL_PALETTE8_RGB5_A1_OES", 0x8B99 }
+   };
+   const int n = sizeof(enums) / sizeof(enums[0]);
+   static char buffer[100];
+   int i;
+   for (i = 0; i < n; i++) {
+      if (enums[i].val == val) {
+         return enums[i].name;
+      }
+   }
+   /* enum val not found, just print hexadecimal value into static buffer */
+   snprintf(buffer, sizeof(buffer), "0x%x", val);
+   return buffer;
+}
+
+
 /*
  * qsort callback for string comparison.
  */
@@ -489,9 +620,6 @@ print_limits(const char *extensions, const char *oglstring)
 #if defined(GL_NV_texture_rectangle)
       { 1, GL_MAX_RECTANGLE_TEXTURE_SIZE_NV, "GL_MAX_RECTANGLE_TEXTURE_SIZE_NV", "GL_NV_texture_rectangle" },
 #endif
-#if defined(GL_ARB_texture_compression)
-      { 1, GL_NUM_COMPRESSED_TEXTURE_FORMATS_ARB, "GL_NUM_COMPRESSED_TEXTURE_FORMATS_ARB", "GL_ARB_texture_compression" },
-#endif
 #if defined(GL_ARB_multitexture)
       { 1, GL_MAX_TEXTURE_UNITS_ARB, "GL_MAX_TEXTURE_UNITS_ARB", "GL_ARB_multitexture" },
 #endif
@@ -537,6 +665,18 @@ print_limits(const char *extensions, const char *oglstring)
       printf("    GL_MAX_CONVOLUTION_WIDTH/HEIGHT = %d, %d\n", max[0], max[1]);
    }
 
+   if (extension_supported("GL_ARB_texture_compression", extensions)) {
+      GLint i, n;
+      GLint *formats;
+      glGetIntegerv(GL_NUM_COMPRESSED_TEXTURE_FORMATS, &n);
+      printf("    GL_NUM_COMPRESSED_TEXTURE_FORMATS = %d\n", n);
+      formats = (GLint *) malloc(n * sizeof(GLint));
+      glGetIntegerv(GL_COMPRESSED_TEXTURE_FORMATS, formats);
+      for (i = 0; i < n; i++) {
+         printf("        %s\n", enum_name(formats[i]));
+      }
+      free(formats);
+   }
 #if defined(GL_ARB_vertex_program)
    if (extension_supported("GL_ARB_vertex_program", extensions)) {
       print_program_limits(GL_VERTEX_PROGRAM_ARB);
