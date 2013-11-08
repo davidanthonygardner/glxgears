@@ -54,15 +54,6 @@ static void render_image( void )
    glPushMatrix();
    glRotatef(20.0, 1.0, 0.0, 0.0);
 
-#if 0
-   glPushMatrix();
-   glTranslatef(-0.75, 0.5, 0.0); 
-   glRotatef(90.0, 1.0, 0.0, 0.0);
-   glMaterialfv( GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, red_mat );
-   glutSolidTorus(0.275, 0.85, 20, 20);
-   glPopMatrix();
-#endif
-
    /* red square */
    glPushMatrix();
    glTranslatef(0.0, -0.5, 0.0); 
@@ -108,11 +99,11 @@ static void render_image( void )
    glEnable(GL_LIGHTING);
    glPopMatrix();
 #endif
+
    glPushMatrix();
    glTranslatef(-0.75, -0.5, 0.0); 
    glRotatef(270.0, 1.0, 0.0, 0.0);
    glMaterialfv( GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, green_mat );
-   glColor4f(0,1,0,0.5);
    glEnable(GL_BLEND);
    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
    gluCylinder(qobj, 1.0, 0.0, 2.0, 16, 1);
@@ -135,12 +126,14 @@ static void render_image( void )
    gluDeleteQuadric(qobj);
 
    {
-      GLint r, g, b, a;
+      GLint r, g, b, a, d;
       glGetIntegerv(GL_RED_BITS, &r);
       glGetIntegerv(GL_GREEN_BITS, &g);
       glGetIntegerv(GL_BLUE_BITS, &b);
       glGetIntegerv(GL_ALPHA_BITS, &a);
+      glGetIntegerv(GL_DEPTH_BITS, &d);
       printf("channel sizes: %d %d %d %d\n", r, g, b, a);
+      printf("depth bits %d\n", d);
    }
 }
 
@@ -261,7 +254,7 @@ int main( int argc, char *argv[] )
    /* Create an RGBA-mode context */
 #if OSMESA_MAJOR_VERSION * 100 + OSMESA_MINOR_VERSION >= 305
    /* specify Z, stencil, accum sizes */
-   OSMesaContext ctx = OSMesaCreateContextExt( GL_RGBA, 16, 0, 0, NULL );
+   OSMesaContext ctx = OSMesaCreateContextExt( GL_RGBA, 32, 0, 0, NULL );
 #else
    OSMesaContext ctx = OSMesaCreateContext( GL_RGBA, NULL );
 #endif
