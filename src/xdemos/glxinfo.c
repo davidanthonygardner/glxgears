@@ -862,13 +862,14 @@ print_screen_info(Display *dpy, int scrnum, Bool allowDirect,
       visinfo = glXGetVisualFromFBConfig(dpy, fbconfigs[0]);
       XFree(fbconfigs);
    }
-   else {
+   else if (!coreProfile) {
       visinfo = choose_xvisinfo(dpy, scrnum);
       if (visinfo)
 	 ctx = glXCreateContext(dpy, visinfo, NULL, allowDirect);
-   }
+   } else
+      visinfo = NULL;
 
-   if (!visinfo) {
+   if (!visinfo && !coreProfile) {
       fprintf(stderr, "Error: couldn't find RGB GLX visual or fbconfig\n");
       return False;
    }
