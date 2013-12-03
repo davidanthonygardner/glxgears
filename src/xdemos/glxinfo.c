@@ -760,7 +760,7 @@ create_context_flags(Display *dpy, GLXFBConfig fbconfig, int major, int minor,
  */
 static GLXContext
 create_context_with_config(Display *dpy, GLXFBConfig config,
-                           Bool coreProfile, Bool direct)
+                           Bool coreProfile, Bool es2Profile, Bool direct)
 {
    GLXContext ctx = 0;
 
@@ -784,6 +784,19 @@ create_context_with_config(Display *dpy, GLXFBConfig config,
             return ctx;
       }
       /* couldn't get core profile context */
+      return 0;
+   }
+
+   if (es2Profile) {
+#ifdef GLX_CONTEXT_ES2_PROFILE_BIT_EXT
+      if (extension_supported("GLX_EXT_create_context_es2_profile",
+                              glXQueryExtensionsString(dpy, 0))) {
+         ctx = create_context_flags(dpy, config, 2, 0, 0x0,
+                                    GLX_CONTEXT_ES2_PROFILE_BIT_EXT,
+                                    direct);
+         return ctx;
+      }
+#endif
       return 0;
    }
 
@@ -832,8 +845,8 @@ choose_xvisinfo(Display *dpy, int scrnum)
 
 static Bool
 print_screen_info(Display *dpy, int scrnum, Bool allowDirect,
-                  Bool coreProfile, Bool limits, Bool singleLine,
-                  Bool coreWorked)
+                  Bool coreProfile, Bool es2Profile, Bool limits,
+                  Bool singleLine, Bool coreWorked)
 {
    Window win;
    XSetWindowAttributes attr;
@@ -843,7 +856,8 @@ print_screen_info(Display *dpy, int scrnum, Bool allowDirect,
    XVisualInfo *visinfo;
    int width = 100, height = 100;
    GLXFBConfig *fbconfigs;
-   const char *oglstring = coreProfile ? "OpenGL core profile" : "OpenGL";
+   const char *oglstring = coreProfile ? "OpenGL core profile" :
+                           es2Profile ? "OpenGL ES profile" : "OpenGL";
 
    root = RootWindow(dpy, scrnum);
 
@@ -853,30 +867,30 @@ print_screen_info(Display *dpy, int scrnum, Bool allowDirect,
    fbconfigs = choose_fb_config(dpy, scrnum);
    if (fbconfigs) {
       ctx = create_context_with_config(dpy, fbconfigs[0],
-                                       coreProfile, allowDirect);
+                                       coreProfile, es2Profile, allowDirect);
       if (!ctx && allowDirect && !coreProfile) {
          /* try indirect */
          ctx = create_context_with_config(dpy, fbconfigs[0],
-                                          coreProfile, False);
+                                          coreProfile, es2Profile, False);
       }
 
       visinfo = glXGetVisualFromFBConfig(dpy, fbconfigs[0]);
       XFree(fbconfigs);
    }
-   else if (!coreProfile) {
+   else if (!coreProfile && !es2Profile) {
       visinfo = choose_xvisinfo(dpy, scrnum);
       if (visinfo)
 	 ctx = glXCreateContext(dpy, visinfo, NULL, allowDirect);
    } else
       visinfo = NULL;
 
-   if (!visinfo && !coreProfile) {
+   if (!visinfo && !coreProfile && !es2Profile) {
       fprintf(stderr, "Error: couldn't find RGB GLX visual or fbconfig\n");
       return False;
    }
 
    if (!ctx) {
-      if (!coreProfile)
+      if (!coreProfile && !es2Profile)
 	 fprintf(stderr, "Error: glXCreateContext failed\n");
       XFree(visinfo);
       return False;
@@ -990,7 +1004,7 @@ print_screen_info(Display *dpy, int scrnum, Bool allowDirect,
 #endif
       CheckError(__LINE__);
 #ifdef GL_VERSION_3_0
-      if (version >= 30) {
+      if (version >= 30 && !es2Profile) {
          GLint flags;
          glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
          printf("%s context flags: %s\n", oglstring, context_flags_string(flags));
@@ -998,7 +1012,7 @@ print_screen_info(Display *dpy, int scrnum, Bool allowDirect,
 #endif
       CheckError(__LINE__);
 #ifdef GL_VERSION_3_2
-      if (version >= 32) {
+      if (version >= 32 && !es2Profile) {
          GLint mask;
          glGetIntegerv(GL_CONTEXT_PROFILE_MASK, &mask);
          printf("%s profile mask: %s\n", oglstring, profile_mask_string(mask));
@@ -1730,8 +1744,9 @@ main(int argc, char *argv[])
       print_display_info(dpy);
       for (scrnum = 0; scrnum < numScreens; scrnum++) {
          mesa_hack(dpy, scrnum);
-         coreWorked = print_screen_info(dpy, scrnum, allowDirect, True, limits, singleLine, False);
-         print_screen_info(dpy, scrnum, allowDirect, False, limits, singleLine, coreWorked);
+         coreWorked = print_screen_info(dpy, scrnum, allowDirect, True, False, limits, singleLine, False);
+         print_screen_info(dpy, scrnum, allowDirect, False, False, limits, singleLine, coreWorked);
+         print_screen_info(dpy, scrnum, allowDirect, False, True, False, singleLine, True);
 
          printf("\n");
          print_visual_info(dpy, scrnum, mode);
