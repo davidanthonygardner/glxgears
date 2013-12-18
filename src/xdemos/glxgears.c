@@ -477,7 +477,7 @@ no_border( Display *dpy, Window w)
 static void
 make_window( Display *dpy, const char *name,
              int x, int y, int width, int height,
-             Window *winRet, GLXContext *ctxRet)
+             Window *winRet, GLXContext *ctxRet, VisualID *visRet)
 {
    int attribs[64];
    int i = 0;
@@ -562,10 +562,11 @@ make_window( Display *dpy, const char *name,
       exit(1);
    }
 
-   XFree(visinfo);
-
    *winRet = win;
    *ctxRet = ctx;
+   *visRet = visinfo->visualid;
+
+   XFree(visinfo);
 }
 
 
@@ -727,6 +728,7 @@ main(int argc, char *argv[])
    GLXContext ctx;
    char *dpyName = NULL;
    GLboolean printInfo = GL_FALSE;
+   VisualID visId;
    int i;
 
    for (i = 1; i < argc; i++) {
@@ -772,7 +774,7 @@ main(int argc, char *argv[])
       winHeight = DisplayHeight(dpy, scrnum);
    }
 
-   make_window(dpy, "glxgears", x, y, winWidth, winHeight, &win, &ctx);
+   make_window(dpy, "glxgears", x, y, winWidth, winHeight, &win, &ctx, &visId);
    XMapWindow(dpy, win);
    glXMakeCurrent(dpy, win, ctx);
    query_vsync(dpy, win);
@@ -782,6 +784,7 @@ main(int argc, char *argv[])
       printf("GL_VERSION    = %s\n", (char *) glGetString(GL_VERSION));
       printf("GL_VENDOR     = %s\n", (char *) glGetString(GL_VENDOR));
       printf("GL_EXTENSIONS = %s\n", (char *) glGetString(GL_EXTENSIONS));
+      printf("VisualID %d, 0x%x\n", (int) visId, (int) visId);
    }
 
    init();
