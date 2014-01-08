@@ -31,6 +31,13 @@ float width = 1.0f;
 #define SIZE 128                /* of non-zoomed drawing region */
 #define ZOOM 32                 /* scale factor for zooming */
 
+/* TODO: Allow to switch mode via key and/or command-line option. */
+#if 0
+GLenum mode = GL_POINT;
+#else
+GLenum mode = GL_LINE;
+#endif
+
 static GLboolean DrawFront = GL_FALSE;
 GLushort TempImage[SIZE][SIZE]; /* original 128 by 128 pixel image */
 GLushort myImage[SIZE*ZOOM][SIZE*ZOOM]; /* zoom by a factor of 32 */
@@ -168,33 +175,48 @@ drawMagnifiedView(void)
       }
    }
       
-   /* Draws the actual line on zoomed version */
-   drawline(X0+APosX-MouseX, Y0+APosY-MouseY, 
-            X1+APosX-MouseX, Y1+APosY-MouseY, 0);
-      
-   /* Draws bounding line area */ 
-   if (fabsf(X0 - X1) >= 
-       fabsf(Y0 - Y1)) {
-      /* X-MAJOR line */
-      drawline(X0+APosX-MouseX, Y0+APosY-MouseY+halfwidth, 
-               X1+APosX-MouseX, Y1+APosY-MouseY+halfwidth, 0xffff);
-      drawline(X0+APosX-MouseX, Y0+APosY-MouseY-halfwidth, 
-               X1+APosX-MouseX, Y1+APosY-MouseY-halfwidth, 0xffff);
-      drawline(X0+APosX-MouseX, Y0+APosY-MouseY+halfwidth, 
-               X0+APosX-MouseX, Y0+APosY-MouseY-halfwidth, 0xffff);
-      drawline(X1+APosX-MouseX, Y1+APosY-MouseY+halfwidth, 
-               X1+APosX-MouseX, Y1+APosY-MouseY-halfwidth, 0xffff);
-   }
-   else {
-      /* Y-MAJOR line */
-      drawline(X0+APosX-MouseX+halfwidth, Y0+APosY-MouseY, 
-               X1+APosX-MouseX+halfwidth, Y1+APosY-MouseY, 0xffff);
-      drawline(X0+APosX-MouseX-halfwidth, Y0+APosY-MouseY, 
-               X1+APosX-MouseX-halfwidth, Y1+APosY-MouseY, 0xffff);
-      drawline(X0+APosX-MouseX+halfwidth, Y0+APosY-MouseY, 
-               X0+APosX-MouseX-halfwidth, Y0+APosY-MouseY, 0xffff);
-      drawline(X1+APosX-MouseX+halfwidth, Y1+APosY-MouseY, 
-               X1+APosX-MouseX-halfwidth, Y1+APosY-MouseY, 0xffff);
+   switch (mode) {
+   case GL_POINT:
+      /* Draws bounding point area */ 
+      drawline(X0+APosX-MouseX-halfwidth, Y0+APosY-MouseY-halfwidth, 
+	       X0+APosX-MouseX+halfwidth, Y0+APosY-MouseY-halfwidth, 0xffff);
+      drawline(X0+APosX-MouseX+halfwidth, Y0+APosY-MouseY-halfwidth, 
+	       X0+APosX-MouseX+halfwidth, Y0+APosY-MouseY+halfwidth, 0xffff);
+      drawline(X0+APosX-MouseX+halfwidth, Y0+APosY-MouseY+halfwidth, 
+	       X0+APosX-MouseX-halfwidth, Y0+APosY-MouseY+halfwidth, 0xffff);
+      drawline(X0+APosX-MouseX-halfwidth, Y0+APosY-MouseY+halfwidth, 
+	       X0+APosX-MouseX-halfwidth, Y0+APosY-MouseY-halfwidth, 0xffff);
+      break;
+   case GL_LINE:
+      /* Draws the actual line on zoomed version */
+      drawline(X0+APosX-MouseX, Y0+APosY-MouseY, 
+	       X1+APosX-MouseX, Y1+APosY-MouseY, 0);
+	 
+      /* Draws bounding line area */ 
+      if (fabsf(X0 - X1) >= 
+	  fabsf(Y0 - Y1)) {
+	 /* X-MAJOR line */
+	 drawline(X0+APosX-MouseX, Y0+APosY-MouseY+halfwidth, 
+		  X1+APosX-MouseX, Y1+APosY-MouseY+halfwidth, 0xffff);
+	 drawline(X0+APosX-MouseX, Y0+APosY-MouseY-halfwidth, 
+		  X1+APosX-MouseX, Y1+APosY-MouseY-halfwidth, 0xffff);
+	 drawline(X0+APosX-MouseX, Y0+APosY-MouseY+halfwidth, 
+		  X0+APosX-MouseX, Y0+APosY-MouseY-halfwidth, 0xffff);
+	 drawline(X1+APosX-MouseX, Y1+APosY-MouseY+halfwidth, 
+		  X1+APosX-MouseX, Y1+APosY-MouseY-halfwidth, 0xffff);
+      }
+      else {
+	 /* Y-MAJOR line */
+	 drawline(X0+APosX-MouseX+halfwidth, Y0+APosY-MouseY, 
+		  X1+APosX-MouseX+halfwidth, Y1+APosY-MouseY, 0xffff);
+	 drawline(X0+APosX-MouseX-halfwidth, Y0+APosY-MouseY, 
+		  X1+APosX-MouseX-halfwidth, Y1+APosY-MouseY, 0xffff);
+	 drawline(X0+APosX-MouseX+halfwidth, Y0+APosY-MouseY, 
+		  X0+APosX-MouseX-halfwidth, Y0+APosY-MouseY, 0xffff);
+	 drawline(X1+APosX-MouseX+halfwidth, Y1+APosY-MouseY, 
+		  X1+APosX-MouseX-halfwidth, Y1+APosY-MouseY, 0xffff);
+      }
+      break;
    }
 }
 
@@ -202,11 +224,6 @@ static void
 Display( void )
 {
    float z = 0;
-
-   printf("(%f, %f) - (%f, %f), width = %f\n",
-	 X0, Y0,
-	 X1, Y1,
-	 width);
 
    glClearColor(.3, .3, .3, 1);
    glClear( GL_COLOR_BUFFER_BIT );
@@ -230,16 +247,31 @@ Display( void )
    glVertex3f(150, 0, z);
    glEnd();
 
-   /* Original line
+   /* Original geometry
     */
-   glLineWidth(width);
-   glBegin(GL_LINES);
-   glColor3f(.8,0,0);
-   glVertex3f(X0, Y0, z);
-   glColor3f(0,.9,0); 
-   glVertex3f(X1, Y1, z);
-   glEnd();
 
+   switch (mode) {
+   case GL_POINT:
+      printf("POINT, (%f, %f), size = %f\n",
+	    X0, Y0, width);
+      glPointSize(width);
+      glBegin(GL_POINTS);
+      glColor3f(.8,0,0);
+      glVertex3f(X0, Y0, z);
+      glEnd();
+      break;
+   case GL_LINE:
+      printf("LINE, (%f, %f) - (%f, %f), width = %f\n",
+	    X0, Y0, X1, Y1, width);
+      glLineWidth(width);
+      glBegin(GL_LINES);
+      glColor3f(.8,0,0);
+      glVertex3f(X0, Y0, z);
+      glColor3f(0,.9,0); 
+      glVertex3f(X1, Y1, z);
+      glEnd();
+      break;
+   }
 
    glColor3f(1,1,1);
    glViewport( 0, 0, WinWidth, WinHeight );
