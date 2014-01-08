@@ -21,24 +21,16 @@ static int WinWidth, WinHeight;
 static int APosX, APosY;         /* simple drawpixels */
 static int BPosX, BPosY;         /* read/draw pixels */
 int MouseButton, MouseY, MouseX; /* mouse control */
-float x0offset = 0.0f;           /* for line translation */
-float y0offset = 0.0f; 
-float x1offset = 0.0f;
-float y1offset = 0.0f;
+float X0 = 0.0f;           /* for line translation */
+float Y0 = 0.0f; 
+float X1 = 0.0f;
+float Y1 = 0.0f;
 float width = 1.0f;
-
-struct Line{
-   float x0;
-   float y0;
-   float x1;
-   float y1;
-};
 
 #define STEP 16                 /* subpixel resolution 1/STEP */
 #define SIZE 128                /* of non-zoomed drawing region */
 #define ZOOM 32                 /* scale factor for zooming */
 
-struct Line line;
 static GLboolean DrawFront = GL_FALSE;
 GLushort TempImage[SIZE][SIZE]; /* original 128 by 128 pixel image */
 GLushort myImage[SIZE*ZOOM][SIZE*ZOOM]; /* zoom by a factor of 32 */
@@ -177,32 +169,32 @@ drawMagnifiedView(void)
    }
       
    /* Draws the actual line on zoomed version */
-   drawline(line.x0+x0offset+APosX-MouseX, line.y0+y0offset+APosY-MouseY, 
-            line.x1+x1offset+APosX-MouseX, line.y1+y1offset+APosY-MouseY, 0);
+   drawline(X0+APosX-MouseX, Y0+APosY-MouseY, 
+            X1+APosX-MouseX, Y1+APosY-MouseY, 0);
       
    /* Draws bounding line area */ 
-   if (fabsf(line.x0 + x0offset - line.x1 - x1offset) >= 
-       fabsf(line.y0 + y0offset - line.y1 - y1offset)) {
+   if (fabsf(X0 - X1) >= 
+       fabsf(Y0 - Y1)) {
       /* X-MAJOR line */
-      drawline(line.x0+x0offset+APosX-MouseX, line.y0+y0offset+APosY-MouseY+halfwidth, 
-               line.x1+x1offset+APosX-MouseX, line.y1+y1offset+APosY-MouseY+halfwidth, 0xffff);
-      drawline(line.x0+x0offset+APosX-MouseX, line.y0+y0offset+APosY-MouseY-halfwidth, 
-               line.x1+x1offset+APosX-MouseX, line.y1+y1offset+APosY-MouseY-halfwidth, 0xffff);
-      drawline(line.x0+x0offset+APosX-MouseX, line.y0+y0offset+APosY-MouseY+halfwidth, 
-               line.x0+x0offset+APosX-MouseX, line.y0+y0offset+APosY-MouseY-halfwidth, 0xffff);
-      drawline(line.x1+x1offset+APosX-MouseX, line.y1+y1offset+APosY-MouseY+halfwidth, 
-               line.x1+x1offset+APosX-MouseX, line.y1+y1offset+APosY-MouseY-halfwidth, 0xffff);
+      drawline(X0+APosX-MouseX, Y0+APosY-MouseY+halfwidth, 
+               X1+APosX-MouseX, Y1+APosY-MouseY+halfwidth, 0xffff);
+      drawline(X0+APosX-MouseX, Y0+APosY-MouseY-halfwidth, 
+               X1+APosX-MouseX, Y1+APosY-MouseY-halfwidth, 0xffff);
+      drawline(X0+APosX-MouseX, Y0+APosY-MouseY+halfwidth, 
+               X0+APosX-MouseX, Y0+APosY-MouseY-halfwidth, 0xffff);
+      drawline(X1+APosX-MouseX, Y1+APosY-MouseY+halfwidth, 
+               X1+APosX-MouseX, Y1+APosY-MouseY-halfwidth, 0xffff);
    }
    else {
       /* Y-MAJOR line */
-      drawline(line.x0+x0offset+APosX-MouseX+halfwidth, line.y0+y0offset+APosY-MouseY, 
-               line.x1+x1offset+APosX-MouseX+halfwidth, line.y1+y1offset+APosY-MouseY, 0xffff);
-      drawline(line.x0+x0offset+APosX-MouseX-halfwidth, line.y0+y0offset+APosY-MouseY, 
-               line.x1+x1offset+APosX-MouseX-halfwidth, line.y1+y1offset+APosY-MouseY, 0xffff);
-      drawline(line.x0+x0offset+APosX-MouseX+halfwidth, line.y0+y0offset+APosY-MouseY, 
-               line.x0+x0offset+APosX-MouseX-halfwidth, line.y0+y0offset+APosY-MouseY, 0xffff);
-      drawline(line.x1+x1offset+APosX-MouseX+halfwidth, line.y1+y1offset+APosY-MouseY, 
-               line.x1+x1offset+APosX-MouseX-halfwidth, line.y1+y1offset+APosY-MouseY, 0xffff);
+      drawline(X0+APosX-MouseX+halfwidth, Y0+APosY-MouseY, 
+               X1+APosX-MouseX+halfwidth, Y1+APosY-MouseY, 0xffff);
+      drawline(X0+APosX-MouseX-halfwidth, Y0+APosY-MouseY, 
+               X1+APosX-MouseX-halfwidth, Y1+APosY-MouseY, 0xffff);
+      drawline(X0+APosX-MouseX+halfwidth, Y0+APosY-MouseY, 
+               X0+APosX-MouseX-halfwidth, Y0+APosY-MouseY, 0xffff);
+      drawline(X1+APosX-MouseX+halfwidth, Y1+APosY-MouseY, 
+               X1+APosX-MouseX-halfwidth, Y1+APosY-MouseY, 0xffff);
    }
 }
 
@@ -210,6 +202,11 @@ static void
 Display( void )
 {
    float z = 0;
+
+   printf("(%f, %f) - (%f, %f), width = %f\n",
+	 X0, Y0,
+	 X1, Y1,
+	 width);
 
    glClearColor(.3, .3, .3, 1);
    glClear( GL_COLOR_BUFFER_BIT );
@@ -238,9 +235,9 @@ Display( void )
    glLineWidth(width);
    glBegin(GL_LINES);
    glColor3f(.8,0,0);
-   glVertex3f(line.x0+x0offset, line.y0+y0offset, z);
+   glVertex3f(X0, Y0, z);
    glColor3f(0,.9,0); 
-   glVertex3f(line.x1+x1offset, line.y1+y1offset, z);
+   glVertex3f(X1, Y1, z);
    glEnd();
 
 
@@ -328,36 +325,34 @@ Key( unsigned char key, int x, int y)
 {
    switch (key) {
    case 'w':
-      y0offset += 1.0/(float)STEP;
+      Y0 += 1.0/(float)STEP;
       break;
    case 's':
-      y0offset -= 1.0/(float)STEP;
+      Y0 -= 1.0/(float)STEP;
       break;
    case 'd':
-      x0offset += 1.0/(float)STEP;
+      X0 += 1.0/(float)STEP;
       break;
    case 'a':
-      x0offset -= 1.0/(float)STEP;
+      X0 -= 1.0/(float)STEP;
       break;
    case 'i':
-      y1offset += 1.0/(float)STEP;
+      Y1 += 1.0/(float)STEP;
       break;
    case 'k':
-      y1offset -= 1.0/(float)STEP;
+      Y1 -= 1.0/(float)STEP;
       break;
    case 'l':
-      x1offset += 1.0/(float)STEP;
+      X1 += 1.0/(float)STEP;
       break;
    case 'j':
-      x1offset -= 1.0/(float)STEP;
+      X1 -= 1.0/(float)STEP;
       break;
    case 'b':
       width += 1.0/(float) STEP;
-      printf("width = %f\n", width);
       break;
    case 'v':
       width -= 1.0/(float) STEP;
-      printf("width = %f\n", width);
       break;
    case 27:
       exit(1);
@@ -373,20 +368,20 @@ SpecialKey( int k, int x, int y)
 {
    switch (k) {
    case GLUT_KEY_UP:
-      y0offset += 1.0/(float)STEP;
-      y1offset += 1.0/(float)STEP;
+      Y0 += 1.0/(float)STEP;
+      Y1 += 1.0/(float)STEP;
       break;
    case GLUT_KEY_DOWN:
-      y0offset -= 1.0/(float)STEP;
-      y1offset -= 1.0/(float)STEP;
+      Y0 -= 1.0/(float)STEP;
+      Y1 -= 1.0/(float)STEP;
       break;
    case GLUT_KEY_RIGHT:
-      x0offset += 1.0/(float)STEP;
-      x1offset += 1.0/(float)STEP;
+      X0 += 1.0/(float)STEP;
+      X1 += 1.0/(float)STEP;
       break;
    case GLUT_KEY_LEFT:
-      x0offset -= 1.0/(float)STEP;
-      x1offset -= 1.0/(float)STEP;
+      X0 -= 1.0/(float)STEP;
+      X1 -= 1.0/(float)STEP;
       break;
    default:
       return;
@@ -427,15 +422,11 @@ Init(void)
 
    ImgWidth=128;
    ImgHeight=128;
-   x0offset = 0;
-   y0offset = 0;
-   x1offset = 0;
-   y1offset = 0;
+   X0 = 2;
+   Y0 = 2;
+   X1 = 15;
+   Y1 = 15;
 
-   line.x0 = 2;
-   line.y0 = 2;
-   line.x1 = 15;
-   line.y1 = 15; 
    glutSetCursor(GLUT_CURSOR_CROSSHAIR);
 
    glPixelStorei(GL_UNPACK_ROW_LENGTH, ImgWidth*ZOOM);
