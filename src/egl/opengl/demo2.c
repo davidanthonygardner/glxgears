@@ -35,7 +35,7 @@ static void _subset_Rectf(GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2,
    }
 
    glVertexPointer(2, GL_FLOAT, 0, v);
-   glColorPointer(4, GL_FLOAT, 0, v);
+   glColorPointer(4, GL_FLOAT, 0, c);
    glEnableClientState(GL_VERTEX_ARRAY);
    glEnableClientState(GL_COLOR_ARRAY);
 
