@@ -139,6 +139,7 @@ static void
 create_shaders(void)
 {
    static const char *fragShaderText =
+      "precision mediump float;\n"
       "varying vec4 v_color;\n"
       "void main() {\n"
       "   gl_FragColor = v_color;\n"
