@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <GL/glut.h>
+#include "glut_wrap.h"
 
 
 static const float black[4]    = { 0, 0, 0, 1 };
