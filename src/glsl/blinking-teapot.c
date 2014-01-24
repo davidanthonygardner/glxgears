@@ -58,6 +58,11 @@ init_opengl (void)
   if (!ShadersSupported ())
     exit (1);
 
+  if (!glutExtensionSupported("GL_ARB_uniform_buffer_object")) {
+     printf("GL_ARB_uniform_buffer_object is required.\n");
+     exit(1);
+  }     
+
   vshad_id = CompileShaderFile (GL_VERTEX_SHADER, "blinking-teapot.vert");
   fshad_id = CompileShaderFile (GL_FRAGMENT_SHADER, "blinking-teapot.frag");
   prog_id = LinkShaders (vshad_id, fshad_id);
