@@ -134,6 +134,12 @@ static const struct { int major, minor; } gl_versions[] = {
 
 #define NUM_GL_VERSIONS ELEMENTS(gl_versions)
 
+/**
+ * Version of the context that was created
+ *
+ * 20, 21, 30, 31, 32, etc.
+ */
+static int version;
 
 /**
  * GL Error checking/warning.
@@ -547,6 +553,15 @@ print_shader_limits(GLenum target)
       { GL_MAX_TEXTURE_IMAGE_UNITS_ARB, "GL_MAX_TEXTURE_IMAGE_UNITS_ARB" },
       { (GLenum) 0, NULL }
    };
+   static const struct token_name geometry_limits[] = {
+      { GL_MAX_GEOMETRY_UNIFORM_COMPONENTS, "GL_MAX_GEOMETRY_UNIFORM_COMPONENTS" },
+      { GL_MAX_GEOMETRY_TEXTURE_IMAGE_UNITS, "GL_MAX_GEOMETRY_TEXTURE_IMAGE_UNITS" },
+      { GL_MAX_GEOMETRY_OUTPUT_VERTICES  , "GL_MAX_GEOMETRY_OUTPUT_VERTICES  " },
+      { GL_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS, "GL_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS" },
+      { GL_MAX_GEOMETRY_INPUT_COMPONENTS , "GL_MAX_GEOMETRY_INPUT_COMPONENTS " },
+      { GL_MAX_GEOMETRY_OUTPUT_COMPONENTS, "GL_MAX_GEOMETRY_OUTPUT_COMPONENTS" },
+      { (GLenum) 0, NULL }
+   };
 
    switch (target) {
    case GL_VERTEX_SHADER:
@@ -557,6 +572,11 @@ print_shader_limits(GLenum target)
    case GL_FRAGMENT_SHADER:
       printf("    GL_FRAGMENT_SHADER_ARB:\n");
       print_shader_limit_list(fragment_limits);
+      break;
+
+   case GL_GEOMETRY_SHADER:
+      printf("    GL_GEOMETRY_SHADER:\n");
+      print_shader_limit_list(geometry_limits);
       break;
    }
 }
@@ -689,6 +709,9 @@ print_limits(const char *extensions, const char *oglstring)
    }
    if (extension_supported("GL_ARB_fragment_shader", extensions)) {
       print_shader_limits(GL_FRAGMENT_SHADER_ARB);
+   }
+   if (version >= 32) {
+      print_shader_limits(GL_GEOMETRY_SHADER);
    }
 }
 
@@ -1057,7 +1080,6 @@ print_screen_info(Display *dpy, int scrnum, Bool allowDirect,
       int glxVersionMinor;
       char *displayName = NULL;
       char *colon = NULL, *period = NULL;
-      int version; /* 20, 21, 30, 31, 32, etc */
 
       CheckError(__LINE__);
       /* Get list of GL extensions */
