@@ -536,7 +536,8 @@ print_shader_limits(GLenum target)
    GLint max[1];
    int i;
 
-   if (target == GL_VERTEX_SHADER_ARB) {
+   switch (target) {
+   case GL_VERTEX_SHADER:
       printf("    GL_VERTEX_SHADER_ARB:\n");
       for (i = 0; vertex_limits[i].token; i++) {
          glGetIntegerv(vertex_limits[i].token, max);
@@ -544,8 +545,9 @@ print_shader_limits(GLenum target)
             printf("        %s = %d\n", vertex_limits[i].name, max[0]);
          }
       }
-   }
-   if (target == GL_FRAGMENT_SHADER_ARB) {
+      break;
+
+   case GL_FRAGMENT_SHADER:
       printf("    GL_FRAGMENT_SHADER_ARB:\n");
       for (i = 0; fragment_limits[i].token; i++) {
          glGetIntegerv(fragment_limits[i].token, max);
@@ -553,6 +555,7 @@ print_shader_limits(GLenum target)
             printf("        %s = %d\n", fragment_limits[i].name, max[0]);
          }
       }
+      break;
    }
 }
 
