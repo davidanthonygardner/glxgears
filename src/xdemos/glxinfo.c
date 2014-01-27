@@ -517,7 +517,6 @@ print_shader_limits(GLenum target)
       GLenum token;
       const char *name;
    };
-#if defined(GL_ARB_vertex_shader)
    static const struct token_name vertex_limits[] = {
       { GL_MAX_VERTEX_UNIFORM_COMPONENTS_ARB, "GL_MAX_VERTEX_UNIFORM_COMPONENTS_ARB" },
       { GL_MAX_VARYING_FLOATS_ARB, "GL_MAX_VARYING_FLOATS_ARB" },
@@ -528,19 +527,15 @@ print_shader_limits(GLenum target)
       { GL_MAX_TEXTURE_COORDS_ARB, "GL_MAX_TEXTURE_COORDS_ARB" },
       { (GLenum) 0, NULL }
    };
-#endif
-#if defined(GL_ARB_fragment_shader)
    static const struct token_name fragment_limits[] = {
       { GL_MAX_FRAGMENT_UNIFORM_COMPONENTS_ARB, "GL_MAX_FRAGMENT_UNIFORM_COMPONENTS_ARB" },
       { GL_MAX_TEXTURE_COORDS_ARB, "GL_MAX_TEXTURE_COORDS_ARB" },
       { GL_MAX_TEXTURE_IMAGE_UNITS_ARB, "GL_MAX_TEXTURE_IMAGE_UNITS_ARB" },
       { (GLenum) 0, NULL }
    };
-#endif
    GLint max[1];
    int i;
 
-#if defined(GL_ARB_vertex_shader)
    if (target == GL_VERTEX_SHADER_ARB) {
       printf("    GL_VERTEX_SHADER_ARB:\n");
       for (i = 0; vertex_limits[i].token; i++) {
@@ -550,8 +545,6 @@ print_shader_limits(GLenum target)
          }
       }
    }
-#endif
-#if defined(GL_ARB_fragment_shader)
    if (target == GL_FRAGMENT_SHADER_ARB) {
       printf("    GL_FRAGMENT_SHADER_ARB:\n");
       for (i = 0; fragment_limits[i].token; i++) {
@@ -561,7 +554,6 @@ print_shader_limits(GLenum target)
          }
       }
    }
-#endif
 }
 
 
@@ -687,16 +679,12 @@ print_limits(const char *extensions, const char *oglstring)
       print_program_limits(GL_FRAGMENT_PROGRAM_ARB);
    }
 #endif
-#if defined(GL_ARB_vertex_shader)
    if (extension_supported("GL_ARB_vertex_shader", extensions)) {
       print_shader_limits(GL_VERTEX_SHADER_ARB);
    }
-#endif
-#if defined(GL_ARB_fragment_shader)
    if (extension_supported("GL_ARB_fragment_shader", extensions)) {
       print_shader_limits(GL_FRAGMENT_SHADER_ARB);
    }
-#endif
 }
 
 
