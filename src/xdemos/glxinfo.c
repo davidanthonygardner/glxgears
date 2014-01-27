@@ -506,6 +506,24 @@ print_program_limits(GLenum target)
 #endif /* GL_ARB_vertex_program / GL_ARB_fragment_program */
 }
 
+struct token_name {
+   GLenum token;
+   const char *name;
+};
+
+static void
+print_shader_limit_list(const struct token_name *lim)
+{
+   GLint max[1];
+   unsigned i;
+
+   for (i = 0; lim[i].token; i++) {
+      glGetIntegerv(lim[i].token, max);
+      if (glGetError() == GL_NO_ERROR) {
+	 printf("        %s = %d\n", lim[i].name, max[0]);
+      }
+   }
+}
 
 /**
  * Print interesting limits for vertex/fragment shaders.
@@ -513,10 +531,6 @@ print_program_limits(GLenum target)
 static void
 print_shader_limits(GLenum target)
 {
-   struct token_name {
-      GLenum token;
-      const char *name;
-   };
    static const struct token_name vertex_limits[] = {
       { GL_MAX_VERTEX_UNIFORM_COMPONENTS_ARB, "GL_MAX_VERTEX_UNIFORM_COMPONENTS_ARB" },
       { GL_MAX_VARYING_FLOATS_ARB, "GL_MAX_VARYING_FLOATS_ARB" },
@@ -533,28 +547,16 @@ print_shader_limits(GLenum target)
       { GL_MAX_TEXTURE_IMAGE_UNITS_ARB, "GL_MAX_TEXTURE_IMAGE_UNITS_ARB" },
       { (GLenum) 0, NULL }
    };
-   GLint max[1];
-   int i;
 
    switch (target) {
    case GL_VERTEX_SHADER:
       printf("    GL_VERTEX_SHADER_ARB:\n");
-      for (i = 0; vertex_limits[i].token; i++) {
-         glGetIntegerv(vertex_limits[i].token, max);
-         if (glGetError() == GL_NO_ERROR) {
-            printf("        %s = %d\n", vertex_limits[i].name, max[0]);
-         }
-      }
+      print_shader_limit_list(vertex_limits);
       break;
 
    case GL_FRAGMENT_SHADER:
       printf("    GL_FRAGMENT_SHADER_ARB:\n");
-      for (i = 0; fragment_limits[i].token; i++) {
-         glGetIntegerv(fragment_limits[i].token, max);
-         if (glGetError() == GL_NO_ERROR) {
-            printf("        %s = %d\n", fragment_limits[i].name, max[0]);
-         }
-      }
+      print_shader_limit_list(fragment_limits);
       break;
    }
 }
