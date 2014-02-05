@@ -256,7 +256,8 @@ Init(void)
       "} \n";
    static const char *geomShaderText =
       "#version 150 \n"
-      "#extension GL_ARB_geometry_shader4: enable \n"
+      "layout(triangles) in; \n"
+      "layout(triangle_strip, max_vertices = 3) out; \n"
       "uniform vec2 ViewportSize; \n"
       "out vec2 Vert0, Vert1, Vert2; \n"
       "\n"
@@ -271,11 +272,11 @@ Init(void)
       "   Vert0 = vpxform(gl_in[0].gl_Position); \n"
       "   Vert1 = vpxform(gl_in[1].gl_Position); \n"
       "   Vert2 = vpxform(gl_in[2].gl_Position); \n"
-      "   gl_Position = gl_PositionIn[0]; \n"
+      "   gl_Position = gl_in[0].gl_Position; \n"
       "   EmitVertex(); \n"
-      "   gl_Position = gl_PositionIn[1]; \n"
+      "   gl_Position = gl_in[1].gl_Position; \n"
       "   EmitVertex(); \n"
-      "   gl_Position = gl_PositionIn[2]; \n"
+      "   gl_Position = gl_in[2].gl_Position; \n"
       "   EmitVertex(); \n"
       "} \n";
    static const char *fragShaderText =
@@ -309,15 +310,14 @@ Init(void)
    if (!ShadersSupported())
       exit(1);
 
-   version = glGetString(GL_VERSION);
-   if (version[0] * 10 + version[2] < 32) {
+   if (!GLEW_VERSION_3_2) {
       fprintf(stderr, "Sorry, OpenGL 3.2 or later required.\n");
       exit(1);
    }
 
    VertShader = CompileShaderText(GL_VERTEX_SHADER, vertShaderText);
    FragShader = CompileShaderText(GL_FRAGMENT_SHADER, fragShaderText);
-   GeomShader = CompileShaderText(GL_GEOMETRY_SHADER_ARB, geomShaderText);
+   GeomShader = CompileShaderText(GL_GEOMETRY_SHADER, geomShaderText);
 
    Program = LinkShaders3(VertShader, GeomShader, FragShader);
    assert(Program);
@@ -326,18 +326,8 @@ Init(void)
    glBindAttribLocation(Program, 0, "Vertex");
    glBindFragDataLocation(Program, 0, "FragColor");
 
-   /*
-    * The geometry shader will receive and emit triangles.
-    */
-   glProgramParameteriARB(Program, GL_GEOMETRY_INPUT_TYPE_ARB,
-                          GL_TRIANGLES);
-   glProgramParameteriARB(Program, GL_GEOMETRY_OUTPUT_TYPE_ARB,
-                          GL_TRIANGLE_STRIP);
-   glProgramParameteriARB(Program,GL_GEOMETRY_VERTICES_OUT_ARB, 3);
-   CheckError(__LINE__);
-
    /* relink */
-   glLinkProgramARB(Program);
+   glLinkProgram(Program);
 
    assert(glIsProgram(Program));
    assert(glIsShader(FragShader));
