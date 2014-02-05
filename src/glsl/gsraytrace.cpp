@@ -56,6 +56,7 @@ static GLuint pgQuery;
 static GLuint dst;
 static GLuint eyeRaysAsPoints;
 
+int posAttribLoc;
 int orig_tAttribLoc;
 int dir_idxAttribLoc;
 int uv_stateAttribLoc;
@@ -69,7 +70,7 @@ float rot[9] = {1,0,0,  0,1,0,   0,0,1};
 
 static const char* vsSource =
 "                                                                  \n"
-"#version 120                                                      \n"
+"#version 150                                                      \n"
 "#line " S__LINE__ "\n"
 "#define SHADOWS                                                   \n"
 "#define RECURSION                                                 \n"
@@ -83,9 +84,10 @@ static const char* vsSource =
 "uniform vec4 backgroundColor;                                     \n"
 "uniform int emitNoMore;                                           \n"
 "                                                                  \n"
-"attribute vec4 orig_t;                                            \n"
-"attribute vec4 dir_idx;                                           \n"
-"attribute vec4 uv_state;                                          \n"
+"in vec4 pos;                                                      \n"
+"in vec4 orig_t;                                                   \n"
+"in vec4 dir_idx;                                                  \n"
+"in vec4 uv_state;                                                 \n"
 "// uv_state.z = state                                             \n"
 "// uv_state.w = type (ray generation)                             \n"
 "                                                                  \n"
@@ -98,9 +100,9 @@ static const char* vsSource =
 "//    0: not shadow ray, eye ray                                  \n"
 "//    1: shadow ray                                               \n"
 "                                                                  \n"
-"varying vec4 orig_t1;                                             \n"
-"varying vec4 dir_idx1;                                            \n"
-"varying vec4 uv_state1;                                           \n"
+"out vec4 orig_t1;                                                 \n"
+"out vec4 dir_idx1;                                                \n"
+"out vec4 uv_state1;                                               \n"
 "                                                                  \n"
 "                                                                  \n"
 "//----------------------------------------------------------------\n"
@@ -224,7 +226,7 @@ static const char* vsSource =
 "  if (state == 0)                                                            \n"
 "  {                                                                         \n"
 "    // generate eye rays\n"
-"    ray = Ray(cameraPos, normalize(vec3(gl_Vertex.x, gl_Vertex.y, -1.0) * rot3));\n"
+"    ray = Ray(cameraPos, normalize(vec3(pos.x, pos.y, -1.0) * rot3));   \n"
 "    isec.t = INF;\n"
 "    isec.idx = -1;\n"
 "    state = 1;\n"
@@ -240,7 +242,7 @@ static const char* vsSource =
 "  //else state == 3                                                     \n"
 "                                                                        \n"
 "  //outVS();                                                            \n"
-"  gl_Position  = gl_Vertex;                                             \n"
+"  gl_Position  = pos;                                                   \n"
 "  orig_t1.xyz  = ray.orig;                                              \n"
 "  orig_t1.w    = isec.t;                                                \n"
 "  dir_idx1.xyz = ray.dir;                                               \n"
@@ -251,7 +253,7 @@ static const char* vsSource =
 
 
 static const char* gsSource = 
-"#version 120                                                             \n"
+"#version 150                                                             \n"
 "#line " S__LINE__ "\n"
 "#extension GL_ARB_geometry_shader4: require                              \n"
 "                                                                         \n"
@@ -310,13 +312,13 @@ static const char* gsSource =
 "  return isec;                                                           \n"
 "}                                                                        \n"
 "                                                                         \n"
-"varying in vec4 orig_t1[1];                                              \n"
-"varying in vec4 dir_idx1[1];                                             \n"
-"varying in vec4 uv_state1[1];                                            \n"
+"in vec4 orig_t1[1];                                                      \n"
+"in vec4 dir_idx1[1];                                                     \n"
+"in vec4 uv_state1[1];                                                    \n"
 "                                                                         \n"
-"varying out vec4 orig_t2;                                                \n"
-"varying out vec4 dir_idx2;                                               \n"
-"varying out vec4 uv_state2;                                              \n"
+"out vec4 orig_t2;                                                        \n"
+"out vec4 dir_idx2;                                                       \n"
+"out vec4 uv_state2;                                                      \n"
 "                                                                         \n"
 "                                                                         \n"
 "void                                                                     \n"
@@ -390,7 +392,7 @@ static const char* gsSource =
 "}\n";
 
 static const char* fsSource = 
-"#version 120                                                             \n"
+"#version 150                                                             \n"
 "#line " S__LINE__ "\n"
 "                                                                         \n"
 "#define SHADOWS                                                          \n"
@@ -448,9 +450,9 @@ static const char* fsSource =
 "  return isec;\n"
 "}\n"
 "\n"
-"varying vec4 orig_t2;\n"
-"varying vec4 dir_idx2;\n"
-"varying vec4 uv_state2;\n"
+"in vec4 orig_t2;\n"
+"in vec4 dir_idx2;\n"
+"in vec4 uv_state2;\n"
 "\n"
 "vec3\n"
 "idx2color(const in int idx)\n"
@@ -596,9 +598,11 @@ Draw(void)
 
    glUniformMatrix3fv(glGetUniformLocation(program, "rot3"), 1, 0, rot);
 
+   //gs.gs->getVertexAttribLocation("pos", gs.posAttribLoc);
    //gs.gs->getVertexAttribLocation("orig_t", gs.orig_tAttribLoc);
    //gs.gs->getVertexAttribLocation("dir_idx", gs.dir_idxAttribLoc);
    //gs.gs->getVertexAttribLocation("uv_state", gs.uv_stateAttribLoc);
+   posAttribLoc = glGetAttribLocation(program, "pos");
    orig_tAttribLoc = glGetAttribLocation(program, "orig_t");
    dir_idxAttribLoc = glGetAttribLocation(program, "dir_idx");
    uv_stateAttribLoc = glGetAttribLocation(program, "uv_state");
@@ -612,8 +616,9 @@ Draw(void)
    //gs.eyeRaysAsPoints->bindAs(ARRAY);
    glBindBuffer(GL_ARRAY_BUFFER, eyeRaysAsPoints);
    {
-      glEnableClientState(GL_VERTEX_ARRAY);
-      glVertexPointer(4, GL_FLOAT, sizeof(GSRay), 0);
+      glEnableVertexAttribArray(posAttribLoc);
+      glVertexAttribPointer(posAttribLoc, 4, GL_FLOAT, GL_FALSE,
+                            sizeof(GSRay), (void*)offsetof(GSRay, pos));
 
       glEnableVertexAttribArray(orig_tAttribLoc);
       glVertexAttribPointer(orig_tAttribLoc, 4, GL_FLOAT, GL_FALSE,
@@ -641,7 +646,7 @@ Draw(void)
 
       glDisableVertexAttribArray(orig_tAttribLoc);
 
-      glDisableClientState(GL_VERTEX_ARRAY);
+      glDisableVertexAttribArray(posAttribLoc);
    }
    //gs.eyeRaysAsPoints->unbindAs(ARRAY);
    glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -670,8 +675,9 @@ Draw(void)
    //gs.dst->bindAs(ARRAY);
    glBindBuffer(GL_ARRAY_BUFFER, dst);
    {
-      glEnableClientState(GL_VERTEX_ARRAY);
-      glVertexPointer(4, GL_FLOAT, sizeof(GSRay), 0);
+      glEnableVertexAttribArray(posAttribLoc);
+      glVertexAttribPointer(posAttribLoc, 4, GL_FLOAT, GL_FALSE,
+                            sizeof(GSRay), (void*)offsetof(GSRay, pos));
 
       glEnableVertexAttribArray(orig_tAttribLoc);
       glVertexAttribPointer(orig_tAttribLoc, 4, GL_FLOAT, GL_FALSE,
@@ -701,7 +707,7 @@ Draw(void)
 
       glDisableVertexAttribArray(orig_tAttribLoc);
 
-      glDisableClientState(GL_VERTEX_ARRAY);
+      glDisableVertexAttribArray(posAttribLoc);
    }
    //gs.dst->unbindAs(ARRAY);
    glBindBuffer(GL_ARRAY_BUFFER, 0);
