@@ -34,7 +34,6 @@
 #include <math.h>
 #include <stddef.h> // offsetof
 
-// TODO: use GL_EXT_transform_feedback or GL3 equivalent
 // TODO: port to piglit too
 
 #define STRINGIFY_(x) #x
@@ -604,33 +603,12 @@ Draw(void)
    dir_idxAttribLoc = glGetAttribLocation(program, "dir_idx");
    uv_stateAttribLoc = glGetAttribLocation(program, "uv_state");
 
-   posVaryingLoc = glGetVaryingLocationNV(program, "gl_Position");
-   orig_tVaryingLoc = glGetVaryingLocationNV(program, "orig_t2");
-   dir_idxVaryingLoc = glGetVaryingLocationNV(program, "dir_idx2");
-   uv_stateVaryingLoc = glGetVaryingLocationNV(program, "uv_state2");
-   //gs.gs->getVaryingLocation("gl_Position", gs.posVaryingLoc);
-   //gs.gs->getVaryingLocation("orig_t2", gs.orig_tVaryingLoc);
-   //gs.gs->getVaryingLocation("dir_idx2", gs.dir_idxVaryingLoc);
-   //gs.gs->getVaryingLocation("uv_state2", gs.uv_stateVaryingLoc);
-
-
-   glBindBufferOffsetNV(GL_TRANSFORM_FEEDBACK_BUFFER_NV, 0, dst, 0);
-   GLint varyings[4]= {
-      posVaryingLoc,
-      orig_tVaryingLoc,
-      dir_idxVaryingLoc,
-      uv_stateVaryingLoc
-   };
-   // I think it will be a performance win to use multiple buffer objects to write to
-   // instead of using the interleaved mode.
-   glTransformFeedbackVaryingsNV(program, 4, varyings, GL_INTERLEAVED_ATTRIBS_NV);
-
    ////printf("%d\n", i);
    //gs.fpwQuery->beginQuery();
    //gs.pgQuery->beginQuery();
-   glBindBufferBaseNV(GL_TRANSFORM_FEEDBACK_BUFFER_NV, 0, dst);
-   glBeginQuery(GL_PRIMITIVES_GENERATED_NV, pgQuery);
-   glBeginTransformFeedbackNV(GL_POINTS);
+   glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, dst);
+   glBeginQuery(GL_PRIMITIVES_GENERATED, pgQuery);
+   glBeginTransformFeedback(GL_POINTS);
    //gs.eyeRaysAsPoints->bindAs(ARRAY);
    glBindBuffer(GL_ARRAY_BUFFER, eyeRaysAsPoints);
    {
@@ -653,9 +631,9 @@ Draw(void)
       //gs.gs->set_uniform("emitNoMore", 1, 0);
       glUniform1i(glGetUniformLocation(program, "emitNoMore"), 0);
 
-      //glEnable(GL_RASTERIZER_DISCARD_NV);
+      //glEnable(GL_RASTERIZER_DISCARD);
       glDrawArrays(GL_POINTS, 0, WinWidth*WinHeight);
-      //glDisable(GL_RASTERIZER_DISCARD_NV);
+      //glDisable(GL_RASTERIZER_DISCARD);
 
       glDisableVertexAttribArray(uv_stateAttribLoc);
 
@@ -667,16 +645,16 @@ Draw(void)
    }
    //gs.eyeRaysAsPoints->unbindAs(ARRAY);
    glBindBuffer(GL_ARRAY_BUFFER, 0);
-   glEndTransformFeedbackNV();
+   glEndTransformFeedback();
    //gs.pgQuery->endQuery();
-   glEndQuery(GL_PRIMITIVES_GENERATED_NV);
+   glEndQuery(GL_PRIMITIVES_GENERATED);
    //gs.fpwQuery->endQuery();
 
    ////psoLog(LOG_RAW) << "1st: " << gs.fpwQuery->getQueryResult() << ", " << gs.pgQuery->getQueryResult() << "\n";
 
 
    ////swap(src, dst);
-   glBindBufferBaseNV(GL_TRANSFORM_FEEDBACK_BUFFER_NV, 0, 0);
+   glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, 0);
 
    ////clear();
 
@@ -777,15 +755,15 @@ Reshape(int width, int height)
 
    {
       size_t nElem = WinWidth*WinHeight*nRayGens;
-      glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER_NV, dst);
-      glBufferData(GL_TRANSFORM_FEEDBACK_BUFFER_NV, nElem*sizeof(GSRay), 0, GL_STREAM_DRAW);
-      GSRay* d = (GSRay*)glMapBuffer(GL_TRANSFORM_FEEDBACK_BUFFER_NV, GL_READ_WRITE);
+      glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, dst);
+      glBufferData(GL_TRANSFORM_FEEDBACK_BUFFER, nElem*sizeof(GSRay), 0, GL_STREAM_DRAW);
+      GSRay* d = (GSRay*)glMapBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, GL_READ_WRITE);
       for (size_t i = 0; i < nElem; i++)
       {
          d[i].dir_idx = vec4(0.0F, 0.0F, 0.0F, -1.0F);
       }
-      glUnmapBuffer(GL_TRANSFORM_FEEDBACK_BUFFER_NV);
-      glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER_NV, 0);
+      glUnmapBuffer(GL_TRANSFORM_FEEDBACK_BUFFER);
+      glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, 0);
       //printf("Ping-pong VBO size 2x%d Kbytes.\n", (int)nElem*sizeof(GSRay)/1024);
    }
 
@@ -866,11 +844,29 @@ Init(void)
       exit(-1);
    }
 
+   if (!GLEW_VERSION_3_0)
+   {
+      fprintf(stderr, "OpenGL 3.0 (needed for transform feedback) not "
+              "supported!\n");
+      exit(-1);
+   }
+
    vertShader = CompileShaderText(GL_VERTEX_SHADER, vsSource);
    geomShader = CompileShaderText(GL_GEOMETRY_SHADER_ARB, gsSource);
    fragShader = CompileShaderText(GL_FRAGMENT_SHADER, fsSource);
    program = LinkShaders3WithGeometryInfo(vertShader, geomShader, fragShader,
                                           3, GL_POINTS, GL_POINTS);
+
+   const char *varyings[] = {
+      "gl_Position",
+      "orig_t2",
+      "dir_idx2",
+      "uv_state2"
+   };
+   // I think it will be a performance win to use multiple buffer objects to write to
+   // instead of using the interleaved mode.
+   glTransformFeedbackVaryings(program, 4, varyings, GL_INTERLEAVED_ATTRIBS);
+   glLinkProgram(program);
 
    if (glGetError() != 0)
    {
@@ -910,12 +906,6 @@ Init(void)
    glUseProgram(0);
 
    printf("GL_RENDERER = %s\n",(const char *) glGetString(GL_RENDERER));
-
-   if (!GLEW_NV_transform_feedback)
-   {
-      fprintf(stderr, "NV transform feedback not supported!\n");
-      exit(-1);
-   }
 
    glGenQueries(1, &pgQuery);
    glGenBuffers(1, &dst);
