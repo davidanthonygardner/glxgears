@@ -83,6 +83,12 @@ AC_CHECK_LIB([glut],
 		[],
 		[glut_enabled=no])
 
+dnl Check for FreeGLUT 2.6 or later
+AC_EGREP_HEADER([glutInitContextProfile],
+		[GL/freeglut.h],
+		[AC_DEFINE(HAVE_FREEGLUT)],
+		[])
+
 dnl Check for GLEW
 PKG_CHECK_MODULES(GLEW, [glew >= 1.5.4])
 DEMO_CFLAGS="$DEMO_CFLAGS $GLEW_CFLAGS"
