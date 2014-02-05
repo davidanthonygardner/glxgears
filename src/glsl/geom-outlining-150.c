@@ -364,9 +364,22 @@ main(int argc, char *argv[])
 {
    glutInit(&argc, argv);
    glutInitWindowSize(WinWidth, WinHeight);
+#ifdef HAVE_FREEGLUT
+   glutInitContextVersion(3, 2);
+   glutInitContextProfile(GLUT_CORE_PROFILE);
    glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
+#elif defined __APPLE__
+   glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
+#else
+   glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
+#endif
    Win = glutCreateWindow(argv[0]);
+   /* glewInit requires glewExperimentel set to true for core profiles.
+    * Depending on the glew version it also generates a GL_INVALID_ENUM.
+    */
+   glewExperimental = GL_TRUE;
    glewInit();
+   glGetError();
    glutReshapeFunc(Reshape);
    glutKeyboardFunc(Key);
    glutDisplayFunc(Redisplay);
