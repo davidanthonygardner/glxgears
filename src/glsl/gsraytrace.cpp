@@ -628,6 +628,7 @@ Draw(void)
    ////printf("%d\n", i);
    //gs.fpwQuery->beginQuery();
    //gs.pgQuery->beginQuery();
+   glBindBufferBaseNV(GL_TRANSFORM_FEEDBACK_BUFFER_NV, 0, dst);
    glBeginQuery(GL_PRIMITIVES_GENERATED_NV, pgQuery);
    glBeginTransformFeedbackNV(GL_POINTS);
    //gs.eyeRaysAsPoints->bindAs(ARRAY);
@@ -675,7 +676,7 @@ Draw(void)
 
 
    ////swap(src, dst);
-   ////glBindBufferOffsetNV(GL_TRANSFORM_FEEDBACK_BUFFER_NV, 0, dst->getID(), 0); pso_gl_check();
+   glBindBufferBaseNV(GL_TRANSFORM_FEEDBACK_BUFFER_NV, 0, 0);
 
    ////clear();
 
