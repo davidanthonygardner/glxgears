@@ -1,7 +1,9 @@
 #ifndef GLUT_WRAP_H
 #define GLUT_WRAP_H
 
-#ifdef __APPLE__
+#ifdef HAVE_FREEGLUT
+#  include <GL/freeglut.h>
+#elif defined __APPLE__
 #  include <GLUT/glut.h>
 #else
 #  include <GL/glut.h>
