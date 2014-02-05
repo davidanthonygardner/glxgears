@@ -70,7 +70,7 @@ float rot[9] = {1,0,0,  0,1,0,   0,0,1};
 
 static const char* vsSource =
 "                                                                  \n"
-"#version 150                                                      \n"
+"#version 150 core                                                 \n"
 "#line " S__LINE__ "\n"
 "#define SHADOWS                                                   \n"
 "#define RECURSION                                                 \n"
@@ -253,7 +253,7 @@ static const char* vsSource =
 
 
 static const char* gsSource = 
-"#version 150                                                             \n"
+"#version 150 core                                                        \n"
 "#line " S__LINE__ "\n"
 "layout(points) in;                                                       \n"
 "layout(points, max_vertices = 3) out;                                    \n"
@@ -393,7 +393,7 @@ static const char* gsSource =
 "}\n";
 
 static const char* fsSource = 
-"#version 150                                                             \n"
+"#version 150 core                                                        \n"
 "#line " S__LINE__ "\n"
 "                                                                         \n"
 "#define SHADOWS                                                          \n"
@@ -408,6 +408,7 @@ static const char* fsSource =
 "uniform vec4 backgroundColor;                                            \n"
 "uniform int emitNoMore;                                                  \n"
 "                                                                         \n"
+"out vec4 frag_color;                                                     \n"
 "                                                                         \n"
 "//-----------------------------------------------------------------------\n"
 "                                                                         \n"
@@ -493,7 +494,7 @@ static const char* fsSource =
 "    Isec eyeHit = isec;\n"
 "    if (eyeHit.idx == -1)\n"
 "    {\n"
-"      gl_FragColor = vec4(backgroundColor.rgb, 0.0);\n"
+"      frag_color = vec4(backgroundColor.rgb, 0.0);\n"
 "      return;\n"
 "    }\n"
 "    vec3 eyeHitPosition = eyeRay.orig + eyeRay.dir * eyeHit.t;\n"
@@ -503,7 +504,7 @@ static const char* fsSource =
 "    vec3  L      = normalize(lightVec);                                         \n"
 "    float NdotL  = max(dot(N, L), 0.0);                                         \n"
 "    vec3 diffuse = idx2color(eyeHit.idx); // material color of the visible point\n"
-"    gl_FragColor = vec4(diffuse * NdotL, 1.0);                                  \n"
+"    frag_color = vec4(diffuse * NdotL, 1.0);                                  \n"
 "    return;                                                                \n"
 "  }                                                                        \n"
 "#ifdef SHADOWS                                                             \n"
@@ -514,7 +515,7 @@ static const char* fsSource =
 "    {                                                             \n"
 "      discard;                                                    \n"
 "    }                                                             \n"
-"    gl_FragColor = vec4(-1,-1,-1, 0.0);                           \n"
+"    frag_color = vec4(-1,-1,-1, 0.0);                           \n"
 "    return;                                                       \n"
 "  }                                                               \n"
 "#endif                                                            \n"
@@ -534,7 +535,7 @@ static const char* fsSource =
 "    vec3  L      = normalize(lightVec);                           \n"
 "    float NdotL  = max(dot(N, L), 0.0);                           \n"
 "    vec3 diffuse = idx2color(reflHit.idx);                        \n"
-"    gl_FragColor = vec4(diffuse * NdotL * 0.25, 1.0); // material color of the visible point\n"
+"    frag_color = vec4(diffuse * NdotL * 0.25, 1.0); // material color of the visible point\n"
 "    return;                                                       \n"
 "  }                                                               \n"
 "#endif                                                            \n"
@@ -607,6 +608,8 @@ Draw(void)
    orig_tAttribLoc = glGetAttribLocation(program, "orig_t");
    dir_idxAttribLoc = glGetAttribLocation(program, "dir_idx");
    uv_stateAttribLoc = glGetAttribLocation(program, "uv_state");
+
+   glBindFragDataLocation(program, 0, "frag_color");
 
    ////printf("%d\n", i);
    //gs.fpwQuery->beginQuery();
@@ -755,10 +758,6 @@ Reshape(int width, int height)
    WinWidth = width;
    WinHeight = height;
    glViewport(0, 0, width, height);
-   glMatrixMode(GL_PROJECTION);
-   glLoadIdentity();
-   glMatrixMode(GL_MODELVIEW);
-   glLoadIdentity();
 
    {
       size_t nElem = WinWidth*WinHeight*nRayGens;
@@ -911,6 +910,10 @@ Init(void)
    glGenBuffers(1, &dst);
    glGenBuffers(1, &eyeRaysAsPoints);
 
+   GLuint vao;
+   glGenVertexArrays(1, &vao);
+   glBindVertexArray(vao);
+
    printf("\nESC                 = exit demo\nleft mouse + drag   = rotate camera\n\n");
 }
 
@@ -920,9 +923,24 @@ main(int argc, char *argv[])
 {
    glutInitWindowSize(WinWidth, WinHeight);
    glutInit(&argc, argv);
+
+#ifdef HAVE_FREEGLUT
+   glutInitContextVersion(3, 2);
+   glutInitContextProfile(GLUT_CORE_PROFILE);
    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
+#elif defined __APPLE__
+   glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
+#else
+   glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
+#endif
    Win = glutCreateWindow(argv[0]);
+
+   // glewInit requires glewExperimentel set to true for core profiles.
+   // Depending on the glew version it also generates GL_INVALID_ENUM.
+   glewExperimental = GL_TRUE;
    glewInit();
+   glGetError();
+
    glutReshapeFunc(Reshape);
    glutKeyboardFunc(Key);
    glutDisplayFunc(Draw);
