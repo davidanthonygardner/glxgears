@@ -776,7 +776,6 @@ Reshape(int width, int height)
 
    {
       size_t nElem = WinWidth*WinHeight*nRayGens;
-      glGenBuffers(1, &dst);
       glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER_NV, dst);
       glBufferData(GL_TRANSFORM_FEEDBACK_BUFFER_NV, nElem*sizeof(GSRay), 0, GL_STREAM_DRAW);
       GSRay* d = (GSRay*)glMapBuffer(GL_TRANSFORM_FEEDBACK_BUFFER_NV, GL_READ_WRITE);
@@ -790,7 +789,6 @@ Reshape(int width, int height)
    }
 
    {
-      glGenBuffers(1, &eyeRaysAsPoints);
       glBindBuffer(GL_ARRAY_BUFFER, eyeRaysAsPoints);
       glBufferData(GL_ARRAY_BUFFER, WinWidth*WinHeight*sizeof(GSRay), 0, GL_STATIC_DRAW);
       GSRay* d = (GSRay*)glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE);
@@ -919,6 +917,8 @@ Init(void)
    }
 
    glGenQueries(1, &pgQuery);
+   glGenBuffers(1, &dst);
+   glGenBuffers(1, &eyeRaysAsPoints);
 
    printf("\nESC                 = exit demo\nleft mouse + drag   = rotate camera\n\n");
 }
