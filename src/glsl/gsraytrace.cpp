@@ -37,6 +37,10 @@
 // TODO: use GL_EXT_transform_feedback or GL3 equivalent
 // TODO: port to piglit too
 
+#define STRINGIFY_(x) #x
+#define STRINGIFY(x) STRINGIFY_(x)
+#define S__LINE__ STRINGIFY(__LINE__)
+
 static const float INF=9999.9F;
 
 static int Win;
@@ -67,7 +71,7 @@ float rot[9] = {1,0,0,  0,1,0,   0,0,1};
 static const char* vsSource =
 "                                                                  \n"
 "#version 120                                                      \n"
-"#line 63 63                                                       \n"
+"#line " S__LINE__ "\n"
 "#define SHADOWS                                                   \n"
 "#define RECURSION                                                 \n"
 "                                                                  \n"
@@ -249,7 +253,7 @@ static const char* vsSource =
 
 static const char* gsSource = 
 "#version 120                                                             \n"
-"#line 245 245                                                            \n"
+"#line " S__LINE__ "\n"
 "#extension GL_ARB_geometry_shader4: require                              \n"
 "                                                                         \n"
 "#define SHADOWS                                                          \n"
@@ -388,7 +392,7 @@ static const char* gsSource =
 
 static const char* fsSource = 
 "#version 120                                                             \n"
-"#line 384 384                                                            \n"
+"#line " S__LINE__ "\n"
 "                                                                         \n"
 "#define SHADOWS                                                          \n"
 "#define RECURSION                                                        \n"
