@@ -23,6 +23,7 @@
 static GLint WinWidth = 500, WinHeight = 500;
 static GLint Win = 0;
 static GLuint VertShader, GeomShader, FragShader, Program;
+static GLuint vao, vbo;
 static GLboolean Anim = GL_TRUE;
 static int uViewportSize = -1, uModelViewProj = -1, uColor = -1;
 
@@ -112,11 +113,6 @@ mat_multiply(GLfloat product[16], const GLfloat a[16], const GLfloat b[16])
 static void
 Redisplay(void)
 {
-   static const GLfloat verts[3][2] = {
-      { -1, -1 },
-      {  1, -1 },
-      {  0,  1 }
-   };
    GLfloat rot[4][4];
    GLfloat trans[16], mvp[16];
 
@@ -131,8 +127,6 @@ Redisplay(void)
    glUniformMatrix4fv(uModelViewProj, 1, GL_FALSE, (float *) mvp);
 
    /* Draw */
-   glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, verts);
-   glEnableVertexAttribArray(0);
    glDrawArrays(GL_TRIANGLES, 0, 3);
 
    glutSwapBuffers();
@@ -217,6 +211,8 @@ CleanUp(void)
    glDeleteShader(VertShader);
    glDeleteShader(GeomShader);
    glDeleteProgram(Program);
+   glDeleteVertexArrays(1, &vao);
+   glDeleteBuffers(1, &vbo);
    glutDestroyWindow(Win);
 }
 
@@ -304,6 +300,11 @@ Init(void)
       "   float m = min(d0, min(d1, d2)); \n"
       "   FragColor = Color * smoothstep(0.0, LINE_WIDTH, m); \n"
       "} \n";
+   static const GLfloat verts[3][2] = {
+      { -1, -1 },
+      {  1, -1 },
+      {  0,  1 }
+   };
 
    if (!ShadersSupported())
       exit(1);
@@ -350,6 +351,16 @@ Init(void)
    uColor = glGetUniformLocation(Program, "Color");
 
    glUniform4fv(uColor, 1, Orange);
+
+   glGenBuffers(1, &vbo);
+   glBindBuffer(GL_ARRAY_BUFFER, vbo);
+   glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+
+   glGenVertexArrays(1, &vao);
+   glBindVertexArray(vao);
+
+   glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+   glEnableVertexAttribArray(0);
 
    glClearColor(0.3f, 0.3f, 0.3f, 0.0f);
    glEnable(GL_DEPTH_TEST);
