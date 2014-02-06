@@ -255,7 +255,8 @@ static const char* vsSource =
 static const char* gsSource = 
 "#version 150                                                             \n"
 "#line " S__LINE__ "\n"
-"#extension GL_ARB_geometry_shader4: require                              \n"
+"layout(points) in;                                                       \n"
+"layout(points, max_vertices = 3) out;                                    \n"
 "                                                                         \n"
 "#define SHADOWS                                                          \n"
 "#define RECURSION                                                        \n"
@@ -337,7 +338,7 @@ static const char* gsSource =
 "    return;                                                              \n"
 "                                                                         \n"
 "  // emitPassThrough();                          \n"
-"  gl_Position  = gl_PositionIn[0];               \n"
+"  gl_Position  = gl_in[0].gl_Position;           \n"
 "  orig_t2      = orig_t1[0];                     \n"
 "  dir_idx2     = dir_idx1[0];                    \n"
 "  uv_state2.xyw= uv_state1[0].xyw;               \n"
@@ -362,7 +363,7 @@ static const char* gsSource =
 "  type = 1;                                        \n"
 "                                                   \n"
 "  //emitShadowRay();                               \n"
-"  gl_Position  = gl_PositionIn[0];                 \n"
+"  gl_Position  = gl_in[0].gl_Position;             \n"
 "  orig_t2.xyz  = shadowRay.orig;                   \n"
 "  orig_t2.w    = shadowHit.t;                      \n"
 "  dir_idx2.xyz = shadowRay.dir;                    \n"
@@ -379,7 +380,7 @@ static const char* gsSource =
 "  type  = -1;                                   \n"
 "                                                \n"
 "  //emitReflRay();                              \n"
-"  gl_Position  = gl_PositionIn[0];              \n"
+"  gl_Position  = gl_in[0].gl_Position;          \n"
 "  orig_t2.xyz  = reflRay.orig;                  \n"
 "  orig_t2.w    = reflHit.t;                     \n"
 "  dir_idx2.xyz = reflRay.dir;                   \n"
@@ -844,24 +845,17 @@ Init(void)
       exit(-1);
    }
 
-   if (!GLEW_ARB_geometry_shader4)
+   if (!GLEW_VERSION_3_2)
    {
-      fprintf(stderr, "GS Shaders are not supported!\n");
-      exit(-1);
-   }
-
-   if (!GLEW_VERSION_3_0)
-   {
-      fprintf(stderr, "OpenGL 3.0 (needed for transform feedback) not "
-              "supported!\n");
+      fprintf(stderr, "OpenGL 3.2 (needed for transform feedback and "
+              "gemoetry shaders) not supported!\n");
       exit(-1);
    }
 
    vertShader = CompileShaderText(GL_VERTEX_SHADER, vsSource);
    geomShader = CompileShaderText(GL_GEOMETRY_SHADER_ARB, gsSource);
    fragShader = CompileShaderText(GL_FRAGMENT_SHADER, fsSource);
-   program = LinkShaders3WithGeometryInfo(vertShader, geomShader, fragShader,
-                                          3, GL_POINTS, GL_POINTS);
+   program = LinkShaders3(vertShader, geomShader, fragShader);
 
    const char *varyings[] = {
       "gl_Position",
