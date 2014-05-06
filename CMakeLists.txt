@@ -137,6 +137,12 @@ if (MINGW)
 	endif ()
 endif ()
 
+if (APPLE)
+	# Silence deprecated function warnings (we rely on GLUT which is now
+	# declared as deprecated)
+	add_definitions (-Wno-deprecated-declarations)
+endif ()
+
 add_definitions(-DDEMOS_DATA_DIR=\"../data/\")
 
 if (BUILD_SHARED_LIBS AND NOT DEFINED LIBDIR)
