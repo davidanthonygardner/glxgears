@@ -16,6 +16,7 @@
 #include <string.h>
 #include <GLES/gl.h>
 #include <GLES/glext.h>
+#include <EGL/egl.h>
 
 #include "eglut.h"
 
@@ -129,7 +130,7 @@ init(void)
       exit(1);
    }
 
-   glDrawTexfOES_func = eglGetProcAddress("glDrawTexfOES");
+   glDrawTexfOES_func = (PFNGLDRAWTEXFOESPROC) eglGetProcAddress("glDrawTexfOES");
 
    if (!glDrawTexfOES_func) {
       fprintf(stderr, "Sorry, failed to resolve glDrawTexfOES function\n");
