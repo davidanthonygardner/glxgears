@@ -28,13 +28,13 @@
 #define GLINFO_COMMON_H
 
 
-/**
- * Note: the gl.h header shipped with MinGW doesn't include glext.h so we
- * include it here.  And the PFNGL typedefs are hit and miss so we define
- * our own here.
- */
+#ifdef _WIN32
+/* GL/glext.h is not commonly available on Windows. */
+#include <GL/glew.h>
+#else
 #include <GL/gl.h>
 #include <GL/glext.h>
+#endif
 
 typedef void (APIENTRY * GETPROGRAMIVARBPROC) (GLenum target, GLenum pname, GLint *params);
 typedef const GLubyte *(APIENTRY * GETSTRINGIPROC) (GLenum name, GLuint index);
