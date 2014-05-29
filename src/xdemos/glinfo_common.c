@@ -25,6 +25,10 @@
 #include <string.h>
 #include "glinfo_common.h"
 
+#ifdef _WIN32
+#define snprintf _snprintf
+#endif
+
 
 /**
  * Return the GL enum name for a numeric value.
