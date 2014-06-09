@@ -310,12 +310,22 @@ build_core_profile_extension_list(const struct ext_functions *extfuncs)
 GLboolean
 extension_supported(const char *ext, const char *extensionsList)
 {
-   const char *p = strstr(extensionsList, ext);
-   if (p) {
-      /* check that next char is a space or end of string */
-      int extLen = strlen(ext);
-      if (p[extLen] == 0 || p[extLen] == ' ')
-         return 1;
+   while (1) {
+      const char *p = strstr(extensionsList, ext);
+      if (p) {
+         /* check that next char is a space or end of string */
+         int extLen = strlen(ext);
+         if (p[extLen] == 0 || p[extLen] == ' ') {
+            return 1;
+         }
+         else {
+            /* We found a superset string, keep looking */
+            extensionsList += extLen;
+         }
+      }
+      else {
+         break;
+      }
    }
    return 0;
 }
