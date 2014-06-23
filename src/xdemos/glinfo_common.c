@@ -536,6 +536,28 @@ print_limits(const char *extensions, const char *oglstring, int version,
       { 1, GL_MAX_COLOR_ATTACHMENTS, "GL_MAX_COLOR_ATTACHMENTS", "GL_ARB_framebuffer_object" },
       { 1, GL_MAX_SAMPLES, "GL_MAX_SAMPLES", "GL_ARB_framebuffer_object" },
 #endif
+#if defined (GL_EXT_transform_feedback)
+     { 1, GL_MAX_TRANSFORM_FEEDBACK_BUFFERS, "GL_MAX_TRANSFORM_FEEDBACK_BUFFERS", "GL_EXT_transform_feedback" },
+     { 1, GL_MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS_EXT, "GL_MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS", "GL_EXT_transform_feedback" },
+     { 1, GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS_EXT, "GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS", "GL_EXT_transform_feedback", },
+     { 1, GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS_EXT, "GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS", "GL_EXT_transform_feedback" },
+#endif
+#if defined (GL_ARB_texture_buffer_object)
+      { 1, GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT, "GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT", "GL_ARB_texture_buffer_object" },
+      { 1, GL_MAX_TEXTURE_BUFFER_SIZE, "GL_MAX_TEXTURE_BUFFER_SIZE", "GL_ARB_texture_buffer_object" },
+#endif
+#if defined (GL_ARB_uniform_buffer_object)
+      { 1, GL_MAX_VERTEX_UNIFORM_BLOCKS, "GL_MAX_VERTEX_UNIFORM_BLOCKS", "GL_ARB_uniform_buffer_object" },
+      { 1, GL_MAX_FRAGMENT_UNIFORM_BLOCKS, "GL_MAX_FRAGMENT_UNIFORM_BLOCKS", "GL_ARB_uniform_buffer_object" },
+      { 1, GL_MAX_GEOMETRY_UNIFORM_BLOCKS, "GL_MAX_GEOMETRY_UNIFORM_BLOCKS" , "GL_ARB_uniform_buffer_object" },
+      { 1, GL_MAX_COMBINED_UNIFORM_BLOCKS, "GL_MAX_COMBINED_UNIFORM_BLOCKS", "GL_ARB_uniform_buffer_object" },
+      { 1, GL_MAX_UNIFORM_BUFFER_BINDINGS, "GL_MAX_UNIFORM_BUFFER_BINDINGS", "GL_ARB_uniform_buffer_object" },
+      { 1, GL_MAX_UNIFORM_BLOCK_SIZE, "GL_MAX_UNIFORM_BLOCK_SIZE", "GL_ARB_uniform_buffer_object" },
+      { 1, GL_MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS, "GL_MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS", "GL_ARB_uniform_buffer_object" },
+      { 1, GL_MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS, "GL_MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS", "GL_ARB_uniform_buffer_object" },
+      { 1, GL_MAX_COMBINED_GEOMETRY_UNIFORM_COMPONENTS, "GL_MAX_COMBINED_GEOMETRY_UNIFORM_COMPONENTS", "GL_ARB_uniform_buffer_object" },
+      { 1, GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, "GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT", "GL_ARB_uniform_buffer_object" },
+#endif
       { 0, (GLenum) 0, NULL, NULL }
    };
    GLint i, max[2];
