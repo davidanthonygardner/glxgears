@@ -558,6 +558,11 @@ print_limits(const char *extensions, const char *oglstring, int version,
       { 1, GL_MAX_COMBINED_GEOMETRY_UNIFORM_COMPONENTS, "GL_MAX_COMBINED_GEOMETRY_UNIFORM_COMPONENTS", "GL_ARB_uniform_buffer_object" },
       { 1, GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, "GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT", "GL_ARB_uniform_buffer_object" },
 #endif
+#if defined (GL_ARB_vertex_attrib_binding)
+      { 1, GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET, "GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET", "GL_ARB_vertex_attrib_binding" },
+      { 1, GL_MAX_VERTEX_ATTRIB_STRIDE, "GL_MAX_VERTEX_ATTRIB_STRIDE", "GL_ARB_vertex_attrib_binding" },
+      { 1, GL_MAX_VERTEX_ATTRIB_BINDINGS, "GL_MAX_VERTEX_ATTRIB_BINDINGS", "GL_ARB_vertex_attrib_binding" },
+#endif
       { 0, (GLenum) 0, NULL, NULL }
    };
    GLint i, max[2];
