@@ -20,6 +20,7 @@
  */
 
 #include <assert.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -331,6 +332,29 @@ extension_supported(const char *ext, const char *extensionsList)
 }
 
 
+/**
+ * Is verNum >= verString?
+ * \param verString  such as "2.1", "3.0", etc.
+ * \param verNum  such as 20, 21, 30, 31, 32, etc.
+ */
+static GLboolean
+version_supported(const char *verString, int verNum)
+{
+   int v;
+
+   if (!verString ||
+       !isdigit(verString[0]) ||
+       verString[1] != '.' ||
+       !isdigit(verString[2])) {
+      return GL_FALSE;
+   }
+
+   v = (verString[0] - '0') * 10 + (verString[2] - '0');
+
+   return verNum >= v;
+}
+
+
 struct token_name
 {
    GLenum token;
@@ -486,7 +510,7 @@ print_limits(const char *extensions, const char *oglstring, int version,
       GLuint count;
       GLenum token;
       const char *name;
-      const char *extension;
+      const char *extension; /* NULL or GL extension name or version string */
    };
    static const struct token_name limits[] = {
       { 1, GL_MAX_ATTRIB_STACK_DEPTH, "GL_MAX_ATTRIB_STACK_DEPTH", NULL },
@@ -565,6 +589,9 @@ print_limits(const char *extensions, const char *oglstring, int version,
       { 1, GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET, "GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET", "GL_ARB_vertex_attrib_binding" },
       { 1, GL_MAX_VERTEX_ATTRIB_BINDINGS, "GL_MAX_VERTEX_ATTRIB_BINDINGS", "GL_ARB_vertex_attrib_binding" },
 #endif
+#if defined(GL_VERSION_4_4)
+      { 1, GL_MAX_VERTEX_ATTRIB_STRIDE, "GL_MAX_VERTEX_ATTRIB_STRIDE", "4.4" },
+#endif
       { 0, (GLenum) 0, NULL, NULL }
    };
    GLint i, max[2];
@@ -572,6 +599,7 @@ print_limits(const char *extensions, const char *oglstring, int version,
    printf("%s limits:\n", oglstring);
    for (i = 0; limits[i].count; i++) {
       if (!limits[i].extension ||
+          version_supported(limits[i].extension, version) ||
           extension_supported(limits[i].extension, extensions)) {
          glGetIntegerv(limits[i].token, max);
          if (glGetError() == GL_NO_ERROR) {
