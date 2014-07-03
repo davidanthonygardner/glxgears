@@ -126,6 +126,7 @@ tri-orig
 tri-point-line-clipped
 tri-query
 tri-repeat
+tri-rotate
 tri-scissor-tri
 tri-square
 tri-stencil
@@ -151,6 +152,7 @@ tri-userclip
 tri-viewport
 tri-z
 tri-z-9
+tri-z-clip
 tri-z-eq
 vbo-drawarrays
 vbo-drawarrays-2101010

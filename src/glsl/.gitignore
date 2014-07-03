@@ -13,6 +13,7 @@ geom-outlining-150
 geom-sprites
 geom-stipple-lines
 geom-wide-lines
+gsraytrace
 identity
 linktest
 mandelbrot
