@@ -847,7 +847,7 @@ Init(void)
    if (!GLEW_VERSION_3_2)
    {
       fprintf(stderr, "OpenGL 3.2 (needed for transform feedback and "
-              "gemoetry shaders) not supported!\n");
+              "geometry shaders) not supported!\n");
       exit(-1);
    }
 
