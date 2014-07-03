@@ -563,7 +563,6 @@ print_limits(const char *extensions, const char *oglstring, int version,
 #endif
 #if defined (GL_ARB_vertex_attrib_binding)
       { 1, GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET, "GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET", "GL_ARB_vertex_attrib_binding" },
-      { 1, GL_MAX_VERTEX_ATTRIB_STRIDE, "GL_MAX_VERTEX_ATTRIB_STRIDE", "GL_ARB_vertex_attrib_binding" },
       { 1, GL_MAX_VERTEX_ATTRIB_BINDINGS, "GL_MAX_VERTEX_ATTRIB_BINDINGS", "GL_ARB_vertex_attrib_binding" },
 #endif
       { 0, (GLenum) 0, NULL, NULL }
