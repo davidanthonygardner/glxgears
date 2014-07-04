@@ -111,7 +111,7 @@ DEMO_LIBS="$DEMO_LIBS $GLU_LIBS"
 
 AC_ARG_ENABLE([egl],
     [AS_HELP_STRING([--enable-egl],
-        [enable EGL library @<:@default=no@:>@])],
+        [enable EGL library @<:@default=auto@:>@])],
     [egl_enabled="$enableval"],
     [egl_enabled=auto])
 if test "x$egl_enabled" != "xno"; then
@@ -119,7 +119,7 @@ if test "x$egl_enabled" != "xno"; then
 fi
 AC_ARG_ENABLE([gles1],
     [AS_HELP_STRING([--enable-gles1],
-        [enable support for OpenGL ES 1.x API @<:@default=no@:>@])],
+        [enable support for OpenGL ES 1.x API @<:@default=auto@:>@])],
     [glesv1_enabled="$enableval"],
     [glesv1_enabled=auto])
 if test "x$glesv1_enabled" != "xno"; then
@@ -127,7 +127,7 @@ if test "x$glesv1_enabled" != "xno"; then
 fi
 AC_ARG_ENABLE([gles2],
     [AS_HELP_STRING([--enable-gles2],
-        [enable support for OpenGL ES 2.x API @<:@default=no@:>@])],
+        [enable support for OpenGL ES 2.x API @<:@default=auto@:>@])],
     [glesv2_enabled="$enableval"],
     [glesv2_enabled=auto])
 if test "x$glesv2_enabled" != "xno"; then
@@ -135,7 +135,7 @@ if test "x$glesv2_enabled" != "xno"; then
 fi
 AC_ARG_ENABLE([vg],
     [AS_HELP_STRING([--enable-vg],
-        [enable support for OpenVG API @<:@default=no@:>@])],
+        [enable support for OpenVG API @<:@default=auto@:>@])],
     [vg_enabled="$enableval"],
     [vg_enabled=auto])
 if test "x$vg_enabled" != "xno"; then
@@ -143,7 +143,7 @@ if test "x$vg_enabled" != "xno"; then
 fi
 AC_ARG_ENABLE([osmesa],
     [AS_HELP_STRING([--enable-osmesa],
-        [enable OSMesa library @<:@default=no@:>@])],
+        [enable OSMesa library @<:@default=auto@:>@])],
     [osmesa_enabled="$enableval"],
     [osmesa_enabled=auto])
 if test "x$osmesa_enabled" != "xno"; then
@@ -151,7 +151,7 @@ if test "x$osmesa_enabled" != "xno"; then
 fi
 AC_ARG_ENABLE([libdrm],
     [AS_HELP_STRING([--enable-libdrm],
-        [enable support for libdrm @<:@default=no@:>@])],
+        [enable support for libdrm @<:@default=auto@:>@])],
     [drm_enabled="$enableval"],
     [drm_enabled=auto])
 if test "x$drm_enabled" != "xno"; then
@@ -196,7 +196,7 @@ DEMO_CFLAGS="$DEMO_CFLAGS $CWARNFLAGS"
 
 AC_ARG_ENABLE([x11],
     [AS_HELP_STRING([--enable-x11],
-        [enable support for X11 @<:@default=no@:>@])],
+        [enable support for X11 @<:@default=auto@:>@])],
     [x11_enabled="$enableval"],
     [x11_enabled=auto])
 if test "x$x11_enabled" != "xno"; then
@@ -216,7 +216,7 @@ fi
 dnl GBM is needed for EGL on KMS
 AC_ARG_ENABLE([gbm],
     [AS_HELP_STRING([--enable-gbm],
-        [enable support for GBM @<:@default=no@:>@])],
+        [enable support for GBM @<:@default=auto@:>@])],
     [gbm_enabled="$enableval"],
     [gbm_enabled=auto])
 if test "x$gbm_enabled" != "xno"; then
@@ -226,7 +226,7 @@ fi
 dnl FreeType2 is needed by an OpenVG demo
 AC_ARG_ENABLE([freetype2],
     [AS_HELP_STRING([--enable-freetype2],
-        [enable support for FreeType2 @<:@default=no@:>@])],
+        [enable support for FreeType2 @<:@default=auto@:>@])],
     [freetype2_enabled="$enableval"],
     [freetype2_enabled=auto])
 if test "x$freetype2_enabled" != "xno"; then
