@@ -334,6 +334,13 @@ print_visual_attribs_verbose(int iPixelFormat, const struct format_info *info)
           info->pfd.cAccumBlueBits, info->pfd.cAccumAlphaBits);
    printf("    multiSample=%d  multiSampleBuffers=%d\n",
           info->numSamples, info->sampleBuffers);
+   if (info->pfd.dwFlags & PFD_SWAP_EXCHANGE)
+      printf("    swapMethod = Exchange\n");
+   else if (info->pfd.dwFlags & PFD_SWAP_COPY)
+      printf("    swapMethod = Copy\n");
+   else
+      printf("    swapMethod = Undefined\n");
+
 }
 
 
