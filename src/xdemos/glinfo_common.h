@@ -63,6 +63,27 @@ struct bit_info
 };
 
 
+typedef enum
+{
+   Normal,
+   Wide,
+   Verbose
+} InfoMode;
+
+
+struct options
+{
+   InfoMode mode;
+   GLboolean findBest;
+   GLboolean limits;
+   GLboolean singleLine;
+   /* GLX only */
+   char *displayName;
+   GLboolean allowDirect;
+};
+
+
+
 void
 print_extension_list(const char *ext, GLboolean singleLine);
 
@@ -84,6 +105,10 @@ profile_mask_string(int mask);
 
 const char *
 context_flags_string(int mask);
+
+
+void
+parse_args(int argc, char *argv[], struct options *options);
 
 
 #endif /* GLINFO_COMMON_H */

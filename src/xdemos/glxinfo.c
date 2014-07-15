@@ -63,13 +63,6 @@
 #define GLX_COLOR_INDEX_BIT		0x00000002
 #endif
 
-typedef enum
-{
-   Normal,
-   Wide,
-   Verbose
-} InfoMode;
-
 
 struct visual_attribs
 {
@@ -1204,76 +1197,24 @@ find_best_visual(Display *dpy, int scrnum)
 }
 
 
-static void
-usage(void)
-{
-   printf("Usage: glxinfo [-v] [-t] [-h] [-i] [-b] [-s] [-display <dname>]\n");
-   printf("\t-v: Print visuals info in verbose form.\n");
-   printf("\t-t: Print verbose table.\n");
-   printf("\t-display <dname>: Print GLX visuals on specified server.\n");
-   printf("\t-h: This information.\n");
-   printf("\t-i: Force an indirect rendering context.\n");
-   printf("\t-b: Find the 'best' visual and print its number.\n");
-   printf("\t-l: Print interesting OpenGL limits.\n");
-   printf("\t-s: Print a single extension per line.\n");
-}
-
-
 int
 main(int argc, char *argv[])
 {
-   char *displayName = NULL;
    Display *dpy;
    int numScreens, scrnum;
-   InfoMode mode = Normal;
-   Bool findBest = False;
-   Bool limits = False;
-   Bool allowDirect = True;
-   Bool singleLine = False;
+   struct options opts;
    Bool coreWorked;
-   int i;
 
-   for (i = 1; i < argc; i++) {
-      if (strcmp(argv[i], "-display") == 0 && i + 1 < argc) {
-         displayName = argv[i + 1];
-         i++;
-      }
-      else if (strcmp(argv[i], "-t") == 0) {
-         mode = Wide;
-      }
-      else if (strcmp(argv[i], "-v") == 0) {
-         mode = Verbose;
-      }
-      else if (strcmp(argv[i], "-b") == 0) {
-         findBest = True;
-      }
-      else if (strcmp(argv[i], "-i") == 0) {
-         allowDirect = False;
-      }
-      else if (strcmp(argv[i], "-l") == 0) {
-         limits = True;
-      }
-      else if (strcmp(argv[i], "-h") == 0) {
-         usage();
-         return 0;
-      }
-      else if (strcmp(argv[i], "-s") == 0) {
-         singleLine = True;
-      }
-      else {
-         printf("Unknown option `%s'\n", argv[i]);
-         usage();
-         return 0;
-      }
-   }
+   parse_args(argc, argv, &opts);
 
-   dpy = XOpenDisplay(displayName);
+   dpy = XOpenDisplay(opts.displayName);
    if (!dpy) {
-      fprintf(stderr, "Error: unable to open display %s\n", XDisplayName(displayName));
+      fprintf(stderr, "Error: unable to open display %s\n",
+              XDisplayName(opts.displayName));
       return -1;
    }
 
-   if (findBest) {
+   if (opts.findBest) {
       int b;
       mesa_hack(dpy, 0);
       b = find_best_visual(dpy, 0);
@@ -1284,14 +1225,18 @@ main(int argc, char *argv[])
       print_display_info(dpy);
       for (scrnum = 0; scrnum < numScreens; scrnum++) {
          mesa_hack(dpy, scrnum);
-         coreWorked = print_screen_info(dpy, scrnum, allowDirect, True, False, limits, singleLine, False);
-         print_screen_info(dpy, scrnum, allowDirect, False, False, limits, singleLine, coreWorked);
-         print_screen_info(dpy, scrnum, allowDirect, False, True, False, singleLine, True);
+         coreWorked = print_screen_info(dpy, scrnum, opts.allowDirect,
+                                        True, False, opts.limits,
+                                        opts.singleLine, False);
+         print_screen_info(dpy, scrnum, opts.allowDirect, False, False,
+                           opts.limits, opts.singleLine, coreWorked);
+         print_screen_info(dpy, scrnum, opts.allowDirect, False, True, False,
+                           opts.singleLine, True);
 
          printf("\n");
-         print_visual_info(dpy, scrnum, mode);
+         print_visual_info(dpy, scrnum, opts.mode);
 #ifdef GLX_VERSION_1_3
-         print_fbconfig_info(dpy, scrnum, mode);
+         print_fbconfig_info(dpy, scrnum, opts.mode);
 #endif
          if (scrnum + 1 < numScreens)
             printf("\n\n");

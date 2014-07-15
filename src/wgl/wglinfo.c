@@ -42,14 +42,6 @@
 #include "glinfo_common.h"
 
 
-typedef enum
-{
-   Normal,
-   Wide,
-   Verbose
-} InfoMode;
-
-
 static GLboolean have_WGL_ARB_pixel_format;
 static GLboolean have_WGL_ARB_multisample;
 
@@ -534,67 +526,26 @@ find_best_visual(HDC hdc)
 }
 
 
-static void
-usage(void)
-{
-   printf("Usage: glxinfo [-v] [-t] [-h] [-i] [-b] [-display <dname>]\n");
-   printf("\t-v: Print visuals info in verbose form.\n");
-   printf("\t-t: Print verbose table.\n");
-   printf("\t-h: This information.\n");
-   printf("\t-b: Find the 'best' visual and print its number.\n");
-   printf("\t-l: Print interesting OpenGL limits.\n");
-   printf("\t-s: Print a single extension per line.\n");
-}
-
 
 int
 main(int argc, char *argv[])
 {
    HDC hdc;
-   InfoMode mode = Normal;
-   GLboolean findBest = GL_FALSE;
-   GLboolean limits = GL_FALSE;
-   GLboolean singleLine = GL_FALSE;
-   int i;
+   struct options opts;
 
-   for (i = 1; i < argc; i++) {
-      if (strcmp(argv[i], "-t") == 0) {
-         mode = Wide;
-      }
-      else if (strcmp(argv[i], "-v") == 0) {
-         mode = Verbose;
-      }
-      else if (strcmp(argv[i], "-b") == 0) {
-         findBest = GL_TRUE;
-      }
-      else if (strcmp(argv[i], "-l") == 0) {
-         limits = GL_TRUE;
-      }
-      else if (strcmp(argv[i], "-h") == 0) {
-         usage();
-         return 0;
-      }
-      else if(strcmp(argv[i], "-s") == 0) {
-         singleLine = GL_TRUE;
-      }
-      else {
-         printf("Unknown option `%s'\n", argv[i]);
-         usage();
-         return 0;
-      }
-   }
+   parse_args(argc, argv, &opts);
 
    hdc = CreateDC(TEXT("DISPLAY"), NULL, NULL, NULL);
 
-   if (findBest) {
+   if (opts.findBest) {
       int b;
       b = find_best_visual(hdc);
       printf("%d\n", b);
    }
    else {
-      print_screen_info(hdc, limits, singleLine);
+      print_screen_info(hdc, opts.limits, opts.singleLine);
       printf("\n");
-      print_visual_info(hdc, mode);
+      print_visual_info(hdc, opts.mode);
    }
 
    return 0;
