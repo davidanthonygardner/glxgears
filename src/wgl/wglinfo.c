@@ -50,6 +50,21 @@ typedef enum
 } InfoMode;
 
 
+static GLboolean have_WGL_ARB_pixel_format;
+static GLboolean have_WGL_ARB_multisample;
+
+static PFNWGLGETPIXELFORMATATTRIBIVARBPROC wglGetPixelFormatAttribivARB_func;
+
+
+/**
+ * An extension of PIXELFORMATDESCRIPTOR to handle multisample, etc.
+ */
+struct format_info {
+   PIXELFORMATDESCRIPTOR pfd;
+   int sampleBuffers, numSamples;
+   int transparency;
+};
+
 
 static LRESULT CALLBACK
 WndProc(HWND hWnd,
@@ -159,6 +174,12 @@ print_screen_info(HDC _hdc, GLboolean limits, GLboolean singleLine)
             printf("WGL extensions:\n");
             print_extension_list(wglExtensions, singleLine);
          }
+         if (extension_supported("WGL_ARB_pixel_format", wglExtensions)) {
+            have_WGL_ARB_pixel_format = GL_TRUE;
+         }
+         if (extension_supported("WGL_ARB_multisample", wglExtensions)) {
+            have_WGL_ARB_multisample = GL_TRUE;
+         }
       }
 #endif
       printf("OpenGL vendor string: %s\n", glVendor);
@@ -208,27 +229,27 @@ visual_render_type_name(BYTE iPixelType)
 }
 
 static void
-print_visual_attribs_verbose(int iPixelFormat, LPPIXELFORMATDESCRIPTOR ppfd)
+print_visual_attribs_verbose(int iPixelFormat, const struct format_info *info)
 {
    printf("Visual ID: %x  generic=%d  native=%d\n",
           iPixelFormat, 
-          ppfd->dwFlags & PFD_GENERIC_FORMAT ? 1 : 0,
-          ppfd->dwFlags & PFD_DRAW_TO_WINDOW ? 1 : 0);
+          info->pfd.dwFlags & PFD_GENERIC_FORMAT ? 1 : 0,
+          info->pfd.dwFlags & PFD_DRAW_TO_WINDOW ? 1 : 0);
    printf("    bufferSize=%d level=%d renderType=%s doubleBuffer=%d stereo=%d\n",
-          0 /* ppfd->bufferSize */, 0 /* ppfd->level */,
-	  visual_render_type_name(ppfd->iPixelType),
-          ppfd->dwFlags & PFD_DOUBLEBUFFER ? 1 : 0, 
-          ppfd->dwFlags & PFD_STEREO ? 1 : 0);
+          0 /* info->pfd.bufferSize */, 0 /* info->pfd.level */,
+	  visual_render_type_name(info->pfd.iPixelType),
+          info->pfd.dwFlags & PFD_DOUBLEBUFFER ? 1 : 0, 
+          info->pfd.dwFlags & PFD_STEREO ? 1 : 0);
    printf("    rgba: cRedBits=%d cGreenBits=%d cBlueBits=%d cAlphaBits=%d\n",
-          ppfd->cRedBits, ppfd->cGreenBits,
-          ppfd->cBlueBits, ppfd->cAlphaBits);
+          info->pfd.cRedBits, info->pfd.cGreenBits,
+          info->pfd.cBlueBits, info->pfd.cAlphaBits);
    printf("    cAuxBuffers=%d cDepthBits=%d cStencilBits=%d\n",
-          ppfd->cAuxBuffers, ppfd->cDepthBits, ppfd->cStencilBits);
+          info->pfd.cAuxBuffers, info->pfd.cDepthBits, info->pfd.cStencilBits);
    printf("    accum: cRedBits=%d cGreenBits=%d cBlueBits=%d cAlphaBits=%d\n",
-          ppfd->cAccumRedBits, ppfd->cAccumGreenBits,
-          ppfd->cAccumBlueBits, ppfd->cAccumAlphaBits);
+          info->pfd.cAccumRedBits, info->pfd.cAccumGreenBits,
+          info->pfd.cAccumBlueBits, info->pfd.cAccumAlphaBits);
    printf("    multiSample=%d  multiSampleBuffers=%d\n",
-          0 /* ppfd->numSamples */, 0 /* ppfd->numMultisample */);
+          info->numSamples, info->sampleBuffers);
 }
 
 
@@ -242,32 +263,32 @@ print_visual_attribs_short_header(void)
 
 
 static void
-print_visual_attribs_short(int iPixelFormat, LPPIXELFORMATDESCRIPTOR ppfd)
+print_visual_attribs_short(int iPixelFormat, const struct format_info *info)
 {
    char *caveat = "None";
 
    printf("0x%02x %2d  %2d %2d %2d %2d %c%c %c  %c %2d %2d %2d %2d %2d %2d %2d",
           iPixelFormat,
-          ppfd->dwFlags & PFD_GENERIC_FORMAT ? 1 : 0,
-          ppfd->dwFlags & PFD_DRAW_TO_WINDOW ? 1 : 0,
-          0,
-          0 /* ppfd->bufferSize */,
-          0 /* ppfd->level */,
-          ppfd->iPixelType == PFD_TYPE_RGBA ? 'r' : ' ',
-          ppfd->iPixelType == PFD_TYPE_COLORINDEX ? 'c' : ' ',
-          ppfd->dwFlags & PFD_DOUBLEBUFFER ? 'y' : '.',
-          ppfd->dwFlags & PFD_STEREO ? 'y' : '.',
-          ppfd->cRedBits, ppfd->cGreenBits,
-          ppfd->cBlueBits, ppfd->cAlphaBits,
-          ppfd->cAuxBuffers,
-          ppfd->cDepthBits,
-          ppfd->cStencilBits
+          info->pfd.dwFlags & PFD_GENERIC_FORMAT ? 1 : 0,
+          info->pfd.dwFlags & PFD_DRAW_TO_WINDOW ? 1 : 0,
+          info->transparency,
+          info->pfd.cColorBits,
+          0 /* info->pfd.level */,
+          info->pfd.iPixelType == PFD_TYPE_RGBA ? 'r' : ' ',
+          info->pfd.iPixelType == PFD_TYPE_COLORINDEX ? 'c' : ' ',
+          info->pfd.dwFlags & PFD_DOUBLEBUFFER ? 'y' : '.',
+          info->pfd.dwFlags & PFD_STEREO ? 'y' : '.',
+          info->pfd.cRedBits, info->pfd.cGreenBits,
+          info->pfd.cBlueBits, info->pfd.cAlphaBits,
+          info->pfd.cAuxBuffers,
+          info->pfd.cDepthBits,
+          info->pfd.cStencilBits
           );
 
    printf(" %2d %2d %2d %2d %2d %1d %s\n",
-          ppfd->cAccumRedBits, ppfd->cAccumGreenBits,
-          ppfd->cAccumBlueBits, ppfd->cAccumAlphaBits,
-          0 /* ppfd->numSamples */, 0 /* ppfd->numMultisample */,
+          info->pfd.cAccumRedBits, info->pfd.cAccumGreenBits,
+          info->pfd.cAccumBlueBits, info->pfd.cAccumAlphaBits,
+          info->numSamples, info->sampleBuffers,
           caveat
           );
 }
@@ -283,50 +304,152 @@ print_visual_attribs_long_header(void)
 
 
 static void
-print_visual_attribs_long(int iPixelFormat, LPPIXELFORMATDESCRIPTOR ppfd)
+print_visual_attribs_long(int iPixelFormat, const struct format_info *info)
 {
    printf("0x%2x %2d %11d %2d     %2d %2d  %4s %3d %3d %3d %3d %3d %3d",
           iPixelFormat,
-          ppfd->dwFlags & PFD_GENERIC_FORMAT ? 1 : 0,
-          ppfd->dwFlags & PFD_DRAW_TO_WINDOW ? 1 : 0,
+          info->pfd.dwFlags & PFD_GENERIC_FORMAT ? 1 : 0,
+          info->pfd.dwFlags & PFD_DRAW_TO_WINDOW ? 1 : 0,
           0,
-          0 /* ppfd->bufferSize */,
-          0 /* ppfd->level */,
-          visual_render_type_name(ppfd->iPixelType),
-          ppfd->dwFlags & PFD_DOUBLEBUFFER ? 1 : 0,
-          ppfd->dwFlags & PFD_STEREO ? 1 : 0,
-          ppfd->cRedBits, ppfd->cGreenBits,
-          ppfd->cBlueBits, ppfd->cAlphaBits
+          0 /* info->pfd.bufferSize */,
+          0 /* info->pfd.level */,
+          visual_render_type_name(info->pfd.iPixelType),
+          info->pfd.dwFlags & PFD_DOUBLEBUFFER ? 1 : 0,
+          info->pfd.dwFlags & PFD_STEREO ? 1 : 0,
+          info->pfd.cRedBits, info->pfd.cGreenBits,
+          info->pfd.cBlueBits, info->pfd.cAlphaBits
           );
 
    printf(" %3d %4d %2d %3d %3d %3d %3d  %2d  %2d\n",
-          ppfd->cAuxBuffers,
-          ppfd->cDepthBits,
-          ppfd->cStencilBits,
-          ppfd->cAccumRedBits, ppfd->cAccumGreenBits,
-          ppfd->cAccumBlueBits, ppfd->cAccumAlphaBits,
-          0 /* ppfd->numSamples */, 0 /* ppfd->numMultisample */
+          info->pfd.cAuxBuffers,
+          info->pfd.cDepthBits,
+          info->pfd.cStencilBits,
+          info->pfd.cAccumRedBits, info->pfd.cAccumGreenBits,
+          info->pfd.cAccumBlueBits, info->pfd.cAccumAlphaBits,
+          info->sampleBuffers, info->numSamples
           );
 }
+
+
+/**
+ * Wrapper for wglGetPixelFormatAttribivARB()
+ * \param attrib  the WGL_* attribute to query
+ * \return value of the attribute, or 0 if failure
+ */
+static int
+get_pf_attrib(HDC hdc, int pf, int attrib)
+{
+   int layer = 0, value;
+   assert(have_WGL_ARB_pixel_format);
+   if (wglGetPixelFormatAttribivARB_func(hdc, pf, layer, 1, &attrib, &value)) {
+      return value;
+   }
+   else {
+      return 0;
+   }
+}
+
+
+/**
+ * Fill in the format_info fields for the pixel format given by pf.
+ */
+static GLboolean
+get_format_info(HDC hdc, int pf, struct format_info *info)
+{
+   memset(info, 0, sizeof(*info));
+
+   if (have_WGL_ARB_pixel_format) {
+      int swapMethod;
+
+      info->pfd.dwFlags = 0;
+      if (get_pf_attrib(hdc, pf, WGL_DRAW_TO_WINDOW_ARB))
+         info->pfd.dwFlags |= PFD_DRAW_TO_WINDOW;
+      if (!get_pf_attrib(hdc, pf, WGL_ACCELERATION_ARB))
+         info->pfd.dwFlags |= PFD_GENERIC_FORMAT;
+      if (get_pf_attrib(hdc, pf, WGL_SUPPORT_OPENGL_ARB))
+         info->pfd.dwFlags |= PFD_SUPPORT_OPENGL;
+      if (get_pf_attrib(hdc, pf, WGL_DOUBLE_BUFFER_ARB))
+         info->pfd.dwFlags |= PFD_DOUBLEBUFFER;
+      if (get_pf_attrib(hdc, pf, WGL_STEREO_ARB))
+         info->pfd.dwFlags |= PFD_STEREO;
+
+      swapMethod = get_pf_attrib(hdc, pf, WGL_SWAP_METHOD_ARB);
+      if (swapMethod == WGL_SWAP_EXCHANGE_ARB)
+         info->pfd.dwFlags |= PFD_SWAP_EXCHANGE;
+      else if (swapMethod == WGL_SWAP_COPY_ARB)
+         info->pfd.dwFlags |= PFD_SWAP_COPY;
+
+      info->pfd.iPixelType = get_pf_attrib(hdc, pf, WGL_PIXEL_TYPE_ARB);
+      if (info->pfd.iPixelType == WGL_TYPE_RGBA_ARB)
+         info->pfd.iPixelType = PFD_TYPE_RGBA;
+      else if (info->pfd.iPixelType == WGL_TYPE_COLORINDEX_ARB)
+         info->pfd.iPixelType = PFD_TYPE_COLORINDEX;
+
+      info->pfd.cColorBits = get_pf_attrib(hdc, pf, WGL_COLOR_BITS_ARB);
+      info->pfd.cRedBits = get_pf_attrib(hdc, pf, WGL_RED_BITS_ARB);
+      info->pfd.cGreenBits = get_pf_attrib(hdc, pf, WGL_GREEN_BITS_ARB);
+      info->pfd.cBlueBits = get_pf_attrib(hdc, pf, WGL_BLUE_BITS_ARB);
+      info->pfd.cAlphaBits = get_pf_attrib(hdc, pf, WGL_ALPHA_BITS_ARB);
+
+      info->pfd.cDepthBits = get_pf_attrib(hdc, pf, WGL_DEPTH_BITS_ARB);
+      info->pfd.cStencilBits = get_pf_attrib(hdc, pf, WGL_STENCIL_BITS_ARB);
+      info->pfd.cAuxBuffers = get_pf_attrib(hdc, pf, WGL_AUX_BUFFERS_ARB);
+
+      info->pfd.cAccumRedBits = get_pf_attrib(hdc, pf,
+                                              WGL_ACCUM_RED_BITS_ARB);
+      info->pfd.cAccumGreenBits = get_pf_attrib(hdc, pf,
+                                                WGL_ACCUM_GREEN_BITS_ARB);
+      info->pfd.cAccumBlueBits = get_pf_attrib(hdc, pf,
+                                               WGL_ACCUM_BLUE_BITS_ARB);
+      info->pfd.cAccumAlphaBits = get_pf_attrib(hdc, pf,
+                                                WGL_ACCUM_ALPHA_BITS_ARB);
+
+      info->sampleBuffers = get_pf_attrib(hdc, pf, WGL_SAMPLE_BUFFERS_ARB);
+      info->numSamples = get_pf_attrib(hdc, pf, WGL_SAMPLES_ARB);
+
+      info->transparency = get_pf_attrib(hdc, pf, WGL_TRANSPARENT_ARB);
+   }
+   else {
+      if (!DescribePixelFormat(hdc, pf,
+                               sizeof(PIXELFORMATDESCRIPTOR), &info->pfd))
+         return GL_FALSE;
+   }
+   return GL_TRUE;
+}
+
 
 
 static void
 print_visual_info(HDC hdc, InfoMode mode)
 {
-   PIXELFORMATDESCRIPTOR pfd;
+   struct format_info info;
    int numVisuals, numWglVisuals;
    int i;
 
-   numVisuals = DescribePixelFormat(hdc, 1, sizeof(PIXELFORMATDESCRIPTOR), NULL);
+   wglGetPixelFormatAttribivARB_func =
+      (PFNWGLGETPIXELFORMATATTRIBIVARBPROC)
+      wglGetProcAddress("wglGetPixelFormatAttribivARB");
+
+   /* Get number of visuals / pixel formats */
+   numVisuals = DescribePixelFormat(hdc, 1,
+                                    sizeof(PIXELFORMATDESCRIPTOR), NULL);
+   printf("%d Regular pixel formats\n", numVisuals);
+
+   if (have_WGL_ARB_pixel_format) {
+      int numExtVisuals = get_pf_attrib(hdc, 0, WGL_NUMBER_PIXEL_FORMATS_ARB);
+      printf("%d Regular + Extended pixel formats\n", numExtVisuals);
+      numVisuals = numExtVisuals;
+   }
+
    if (numVisuals == 0)
       return;
 
    numWglVisuals = 0;
    for (i = 0; i < numVisuals; i++) {
-      if(!DescribePixelFormat(hdc, i, sizeof(PIXELFORMATDESCRIPTOR), &pfd))
+      if(!DescribePixelFormat(hdc, i, sizeof(PIXELFORMATDESCRIPTOR), &info.pfd))
 	 continue;
 
-      //if(!(pfd.dwFlags & PFD_SUPPORT_OPENGL))
+      //if(!(info.pfd.dwFlags & PFD_SUPPORT_OPENGL))
       //   continue;
 
       ++numWglVisuals;
@@ -340,18 +463,14 @@ print_visual_info(HDC hdc, InfoMode mode)
       print_visual_attribs_long_header();
 
    for (i = 0; i < numVisuals; i++) {
-      if(!DescribePixelFormat(hdc, i, sizeof(PIXELFORMATDESCRIPTOR), &pfd))
-	 continue;
-
-      //if(!(pfd.dwFlags & PFD_SUPPORT_OPENGL))
-      //   continue;
+      get_format_info(hdc, i, &info);
 
       if (mode == Verbose)
-	 print_visual_attribs_verbose(i, &pfd);
+	 print_visual_attribs_verbose(i, &info);
       else if (mode == Normal)
-         print_visual_attribs_short(i, &pfd);
+         print_visual_attribs_short(i, &info);
       else if (mode == Wide) 
-         print_visual_attribs_long(i, &pfd);
+         print_visual_attribs_long(i, &info);
    }
    printf("\n");
 }
