@@ -42,10 +42,12 @@
 #include "glinfo_common.h"
 
 
+static GLboolean have_WGL_ARB_create_context;
 static GLboolean have_WGL_ARB_pixel_format;
 static GLboolean have_WGL_ARB_multisample;
 
 static PFNWGLGETPIXELFORMATATTRIBIVARBPROC wglGetPixelFormatAttribivARB_func;
+static PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB_func;
 
 
 /**
@@ -77,7 +79,8 @@ WndProc(HWND hWnd,
 
 
 static void
-print_screen_info(HDC _hdc, GLboolean limits, GLboolean singleLine)
+print_screen_info(HDC _hdc, GLboolean limits, GLboolean singleLine,
+                  GLboolean coreProfile)
 {
    WNDCLASS wc;
    HWND win;
@@ -153,36 +156,79 @@ print_screen_info(HDC _hdc, GLboolean limits, GLboolean singleLine)
       PFNWGLGETEXTENSIONSSTRINGARBPROC wglGetExtensionsStringARB_func = 
          (PFNWGLGETEXTENSIONSSTRINGARBPROC)wglGetProcAddress("wglGetExtensionsStringARB");
 #endif
-      const char *glVendor = (const char *) glGetString(GL_VENDOR);
-      const char *glRenderer = (const char *) glGetString(GL_RENDERER);
-      const char *glVersion = (const char *) glGetString(GL_VERSION);
-      const char *glExtensions = (const char *) glGetString(GL_EXTENSIONS);
+      const char *glVendor, *glRenderer, *glVersion, *glExtensions;
+      const char *wglExtensions = NULL;
       struct ext_functions extfuncs;
       
 #if defined(WGL_ARB_extensions_string)
       if (wglGetExtensionsStringARB_func) {
-         const char *wglExtensions = wglGetExtensionsStringARB_func(hdc);
-         if(wglExtensions) {
-            printf("WGL extensions:\n");
-            print_extension_list(wglExtensions, singleLine);
-         }
+         wglExtensions = wglGetExtensionsStringARB_func(hdc);
          if (extension_supported("WGL_ARB_pixel_format", wglExtensions)) {
             have_WGL_ARB_pixel_format = GL_TRUE;
          }
          if (extension_supported("WGL_ARB_multisample", wglExtensions)) {
             have_WGL_ARB_multisample = GL_TRUE;
          }
+         if (extension_supported("WGL_ARB_create_context", wglExtensions)) {
+            have_WGL_ARB_create_context = GL_TRUE;
+         }
       }
 #endif
-      printf("OpenGL vendor string: %s\n", glVendor);
-      printf("OpenGL renderer string: %s\n", glRenderer);
-      printf("OpenGL version string: %s\n", glVersion);
-#ifdef GL_VERSION_2_0
-      if (glVersion[0] >= '2' && glVersion[1] == '.') {
-         char *v = (char *) glGetString(GL_SHADING_LANGUAGE_VERSION);
-         printf("OpenGL shading language version string: %s\n", v);
+
+      if (coreProfile && have_WGL_ARB_create_context) {
+         /* Try to create a new, core context */
+         HGLRC core_ctx = 0;
+         int i;
+
+         wglCreateContextAttribsARB_func =
+            (PFNWGLCREATECONTEXTATTRIBSARBPROC)
+            wglGetProcAddress("wglCreateContextAttribsARB");
+         assert(wglCreateContextAttribsARB_func);
+         if (!wglCreateContextAttribsARB_func) {
+            printf("Failed to get wglCreateContextAttribsARB pointer.");
+            return;
+         }
+
+         for (i = NUM_GL_VERSIONS - 2; i > 0 ; i--) {
+            int attribs[10], n;
+
+            /* don't bother below GL 3.1 */
+            if (gl_versions[i].major == 3 && gl_versions[i].minor == 0) {
+               break;
+            }
+
+            n = 0;
+            attribs[n++] = WGL_CONTEXT_MAJOR_VERSION_ARB;
+            attribs[n++] = gl_versions[i].major;
+            attribs[n++] = WGL_CONTEXT_MINOR_VERSION_ARB;
+            attribs[n++] = gl_versions[i].minor;
+            if (gl_versions[i].major * 10 + gl_versions[i].minor > 31) {
+               attribs[n++] = WGL_CONTEXT_PROFILE_MASK_ARB;
+               attribs[n++] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
+            }
+            attribs[n++] = 0;
+
+            core_ctx = wglCreateContextAttribsARB_func(hdc, 0, attribs);
+            if (core_ctx) {
+               break;
+            }
+         }
+
+         if (!core_ctx) {
+            printf("Failed to create core profile context.\n");
+            return;
+         }
+
+         ctx = core_ctx;
+         if (!wglMakeCurrent(hdc, ctx)) {
+            printf("Failed to bind core profile context.\n");
+            return;
+         }
+         oglString = "OpenGL core profile";
       }
-#endif
+      else {
+         coreProfile = GL_FALSE;
+      }
 
       extfuncs.GetProgramivARB = (PFNGLGETPROGRAMIVARBPROC)
          wglGetProcAddress("glGetProgramivARB");
@@ -191,9 +237,55 @@ print_screen_info(HDC _hdc, GLboolean limits, GLboolean singleLine)
       extfuncs.GetConvolutionParameteriv = (GETCONVOLUTIONPARAMETERIVPROC)
          wglGetProcAddress("glGetConvolutionParameteriv");
 
+      glVendor = (const char *) glGetString(GL_VENDOR);
+      glRenderer = (const char *) glGetString(GL_RENDERER);
+      glVersion = (const char *) glGetString(GL_VERSION);
+      if (coreProfile) {
+         glExtensions = build_core_profile_extension_list(&extfuncs);
+      }
+      else {
+         glExtensions = (const char *) glGetString(GL_EXTENSIONS);
+      }
+
+      /*
+       * Print all the vendor, version, extension strings.
+       */
+
+      if (!coreProfile) {
+         if (wglExtensions) {
+            printf("WGL extensions:\n");
+            print_extension_list(wglExtensions, singleLine);
+         }
+         printf("OpenGL vendor string: %s\n", glVendor);
+         printf("OpenGL renderer string: %s\n", glRenderer);
+      }
+
+      printf("%s version string: %s\n", oglString, glVersion);
+
       version = (glVersion[0] - '0') * 10 + (glVersion[2] - '0');
 
-      printf("OpenGL extensions:\n");
+#ifdef GL_VERSION_2_0
+      if (version >= 20) {
+         char *v = (char *) glGetString(GL_SHADING_LANGUAGE_VERSION);
+         printf("%s shading language version string: %s\n", oglString, v);
+      }
+#endif
+#ifdef GL_VERSION_3_0
+      if (version >= 30) {
+         GLint flags;
+         glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+         printf("%s context flags: %s\n", oglString, context_flags_string(flags));
+      }
+#endif
+#ifdef GL_VERSION_3_2
+      if (version >= 32) {
+         GLint mask;
+         glGetIntegerv(GL_CONTEXT_PROFILE_MASK, &mask);
+         printf("%s profile mask: %s\n", oglString, profile_mask_string(mask));
+      }
+#endif
+
+      printf("%s extensions:\n", oglString);
       print_extension_list(glExtensions, singleLine);
       if (limits) {
          print_limits(glExtensions, oglString, version, &extfuncs);
@@ -543,7 +635,9 @@ main(int argc, char *argv[])
       printf("%d\n", b);
    }
    else {
-      print_screen_info(hdc, opts.limits, opts.singleLine);
+      print_screen_info(hdc, opts.limits, opts.singleLine, GL_FALSE);
+      printf("\n");
+      print_screen_info(hdc, opts.limits, opts.singleLine, GL_TRUE);
       printf("\n");
       print_visual_info(hdc, opts.mode);
    }
