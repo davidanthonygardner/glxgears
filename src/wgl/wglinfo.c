@@ -347,9 +347,9 @@ print_visual_attribs_verbose(int iPixelFormat, const struct format_info *info)
 static void
 print_visual_attribs_short_header(void)
 {
- printf("   visual   x  bf lv rg d st colorbuffer ax dp st accumbuffer  ms  cav\n");
- printf(" id gen win sp sz l  ci b ro  r  g  b  a bf th cl  r  g  b  a ns b eat\n");
- printf("-----------------------------------------------------------------------\n");
+   printf("   visual   x   bf lv rg d st colorbuffer ax dp st accumbuffer  ms  cav\n");
+   printf(" id gen win sp  sz l  ci b ro  r  g  b  a bf th cl  r  g  b  a ns b eat\n");
+   printf("------------------------------------------------------------------------\n");
 }
 
 
@@ -358,7 +358,7 @@ print_visual_attribs_short(int iPixelFormat, const struct format_info *info)
 {
    char *caveat = "None";
 
-   printf("0x%02x %2d  %2d %2d %2d %2d %c%c %c  %c %2d %2d %2d %2d %2d %2d %2d",
+   printf("0x%02x %2d  %2d %2d %3d %2d %c%c %c  %c %2d %2d %2d %2d %2d %2d %2d",
           iPixelFormat,
           info->pfd.dwFlags & PFD_GENERIC_FORMAT ? 1 : 0,
           info->pfd.dwFlags & PFD_DRAW_TO_WINDOW ? 1 : 0,
