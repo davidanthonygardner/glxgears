@@ -747,7 +747,7 @@ parse_args(int argc, char *argv[], struct options *options)
    options->limits = GL_FALSE;
    options->singleLine = GL_FALSE;
    options->displayName = NULL;
-   options->allowDirect = GL_FALSE;
+   options->allowDirect = GL_TRUE;
 
    for (i = 1; i < argc; i++) {
 #ifndef _WIN32
