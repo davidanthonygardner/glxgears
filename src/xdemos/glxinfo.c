@@ -268,7 +268,7 @@ create_context_with_config(Display *dpy, GLXFBConfig config,
        * GL that we're aware of.  If we don't specify the version
        */
       int i;
-      for (i = NUM_GL_VERSIONS - 2; i > 0 ; i--) {
+      for (i = 0; gl_versions[i].major > 0; i++) {
           /* don't bother below GL 3.0 */
           if (gl_versions[i].major == 3 &&
               gl_versions[i].minor == 0)

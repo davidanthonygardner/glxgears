@@ -189,7 +189,7 @@ print_screen_info(HDC _hdc, GLboolean limits, GLboolean singleLine,
             return;
          }
 
-         for (i = NUM_GL_VERSIONS - 2; i > 0 ; i--) {
+         for (i = 0; gl_versions[i].major > 0; i++) {
             int attribs[10], n;
 
             /* don't bother below GL 3.1 */
