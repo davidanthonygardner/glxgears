@@ -4,6 +4,7 @@ project (mesademos)
 
 include (FindPkgConfig)
 include (CheckCCompilerFlag)
+include (CheckSymbolExists)
 
 find_package (OpenGL REQUIRED)
 find_package (GLUT REQUIRED)
@@ -23,6 +24,14 @@ if (PKG_CONFIG_FOUND AND NOT WIN32)
 	pkg_check_modules (GLESV1 glesv1_cm)
 	pkg_check_modules (GLESV2 glesv2)
 	pkg_check_modules (VG vg)
+endif ()
+
+# Check for FreeGLUT 2.6 or later
+set (CMAKE_REQUIRED_INCLUDES "${GLUT_INCLUDE_DIR}")
+set (CMAKE_REQUIRED_LIBRARIES "${GLUT_glut_LIBRARY}")
+check_symbol_exists ("glutInitContextProfile" "GL/glut.h;GL/freeglut.h" HAVE_FREEGLUT)
+if (HAVE_FREEGLUT)
+	add_definitions (-DHAVE_FREEGLUT)
 endif ()
 
 if (UNIX)
