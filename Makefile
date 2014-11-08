@@ -3,7 +3,7 @@ CFLAGS=-I/usr/include/GL -D_GNU_SOURCE -DPTHREADS -Wall -Wpointer-arith -Wstrict
 LFLAGS=-lGL -lGLEW -lGLU -lGL -lm -lX11 -lXext
 
 glxgears: glxgears.o
-	gcc -o $@ $^ $(CFLAGS) $(LFLAGS)
+	$(CC) -o $@ $^ $(CFLAGS) $(LFLAGS)
 
 glxgears.o: glxgears.c
 	$(CC) -c -o $@ $< $(CFLAGS) -MT $< -MD -MP -MF glxgears.Tpo
