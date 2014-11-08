@@ -22,26 +22,72 @@
 # Authors:
 #    Eric Anholt <eric@anholt.net>
 
-SUBDIRS = \
-	util \
-	data \
-	demos \
-	egl \
-	fp \
-	fpglsl \
-	glsl \
-        gs \
-	objviewer \
-	osdemos \
-	perf \
-	rbug \
-	redbook \
-	samples \
-	slang \
-	tests \
-	tools \
-	trivial \
-	vp \
-	vpglsl \
-	wgl \
-	xdemos
+AM_CFLAGS = \
+	$(DEMO_CFLAGS) \
+	$(X11_CFLAGS) \
+	-I$(top_srcdir)/src/util
+AM_LDFLAGS = \
+	$(DEMO_LIBS) \
+	$(X11_LIBS)
+
+if HAVE_X11
+noinst_LTLIBRARIES = libpbutil.la
+
+bin_PROGRAMS = \
+	corender \
+	glsync \
+	glthreads \
+	glxdemo \
+	glxgears \
+	glxgears_fbconfig \
+	glxgears_pixmap \
+	glxcontexts \
+	glxheads \
+	glxinfo \
+	glxpixmap \
+	glxpbdemo \
+	glxsnoop \
+	glxswapcontrol \
+	manywin \
+	multictx \
+	offset \
+	overlay \
+	pbinfo \
+	pbdemo \
+	shape \
+	sharedtex \
+        sharedtex_mt \
+	texture_from_pixmap \
+	wincopy \
+	xfont \
+	xrotfontdemo
+endif
+
+libpbutil_la_SOURCES = \
+	pbutil.c \
+	pbutil.h
+
+corender_SOURCES = \
+	corender.c \
+	ipc.c \
+	ipc.h
+
+xrotfontdemo_SOURCES = \
+	xrotfontdemo.c \
+	xuserotfont.c \
+	xuserotfont.h
+
+glxinfo_SOURCES = \
+	glxinfo.c \
+	glinfo_common.c \
+	glinfo_common.h
+
+glthreads_LDADD = -lpthread
+glxgears_fbconfig_LDADD = libpbutil.la
+pbdemo_LDADD = libpbutil.la
+pbinfo_LDADD = libpbutil.la
+sharedtex_mt_LDADD = -lpthread
+
+EXTRA_DIST = \
+	yuvrect_client.c \
+	xdemo.c
